@@ -23,7 +23,7 @@ void Autocorrelation::exec() {
 
     fft.exec();
 
-    for (int i = 0; i < dft.size(); i++) {
+    for (std::size_t i = 0; i < dft.size(); i++) {
         dft[i] *= std::conj(dft[i]);
     }
 

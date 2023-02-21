@@ -36,7 +36,7 @@ void EchoHidingEmbedder::embed() {
         conv_zero.exec();
     }
     // add the echo to the signal
-    for (int i = 0; i < in_frame.size(); i++) {
+    for (std::size_t i = 0; i < in_frame.size(); i++) {
         out_frame[i] = delayed[i]; // TODO maybe mixer
     }
 }
@@ -56,7 +56,7 @@ bool EchoHidingExtractor::extract(std::ostream &data) {
 
     // calculate autocepstrum (cepstrum of autocorrelation)
     fft.exec();
-    for (int i = 0; i < dft.size(); i++) {
+    for (std::size_t i = 0; i < dft.size(); i++) {
         const auto abs = std::complex<double>(std::abs(dft[i]), 0);
         dft[i] = std::log(abs);
     }

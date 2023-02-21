@@ -31,7 +31,7 @@ void IFFT::exec() {
     }
     fftw_execute(plan);
     // fftw doesn't normalize, we have to
-    for (int i = 0; i < N; i++) {
+    for (std::size_t i = 0; i < N; i++) {
         (*out)[i] /= N;
     }
 }

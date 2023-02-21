@@ -29,9 +29,9 @@ class Embedder {
             return bit;
         }
 
+        std::istream& data;
         std::vector<T> in_frame;
         std::vector<T> out_frame;
-        std::istream& data;
     private:
         int bit_idx = 0;
         char c = 0;

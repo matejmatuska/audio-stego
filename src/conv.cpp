@@ -31,20 +31,20 @@ void Conv::exec() {
     fft_kernel.exec();
 
     // the actual convolution
-    for(int i = 0; i < padded_size; i++) {
+    for(std::size_t i = 0; i < padded_size; i++) {
         dft_conv[i] = dft_x[i] * dft_kernel[i];
     }
 
     ifft.exec();
 
     // overlap add from previous segment
-    for (int i = 0; i < olap_len; i++) {
+    for (std::size_t i = 0; i < olap_len; i++) {
         (*out)[i] += olap[i];
     }
 
     // save overlap for next segment
     int j = 0;
-    for (int i = x->size(); i < padded_size; i++) {
+    for (std::size_t i = x->size(); i < padded_size; i++) {
         olap[j++] = (*out)[i];
     }
 }

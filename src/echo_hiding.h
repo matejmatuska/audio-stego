@@ -37,12 +37,13 @@ class EchoHidingExtractor : public Extractor<double> {
         char c = 0;
         int bit_idx = 0;
 
+        std::vector<double> autocorrelation;
+        Autocorrelation autocorrelate;
+
         std::vector<std::complex<double>> dft;
         FFT fft;
         IFFT ifft;
 
-        std::vector<double> autocorrelation;
-        Autocorrelation autocorrelate;
 };
 
 #endif

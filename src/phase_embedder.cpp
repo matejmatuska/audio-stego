@@ -64,7 +64,7 @@ void encodeFirstBlock(vector<double>& phases, const char *data, int count) {
 }
 
 void PhaseEmbedder::embed() {
-    char buff[in_frame.size()];
+    auto buff = new char[in_frame.size()];
     data.read(buff, in_frame.size() - 1); // leave one out for the zero byte
     std::string str{buff};
     embed(str);

@@ -6,12 +6,12 @@
 template <class T>
 class LsbEmbedder : public Embedder<T> {
     public:
-        LsbEmbedder(std::istream& data) : Embedder<T>(data) {}
+        using Embedder<T>::Embedder;
 
         void embed() override {
             // FIXME better multichannel handling
 
-            for (int i = 0; i < this->in_frame.size(); i++) {
+            for (std::size_t i = 0; i < this->in_frame.size(); i++) {
                 char bit = this->get_bit();
 
                 int sample = this->in_frame[i];

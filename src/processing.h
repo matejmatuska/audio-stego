@@ -2,6 +2,7 @@
 #define PROCESSING_H
 
 #include <complex>
+#include <cstddef>
 #include <vector>
 
 #include <fftw3.h>
@@ -15,7 +16,7 @@ void demultiplex(const std::vector<T>& in,
                  int channels)
 {
     int j = 0;
-    for (int i = chnum; i < in.size(); i += channels) {
+    for (std::size_t i = chnum; i < in.size(); i += channels) {
         chan[j++] = in[i];
     }
 }
@@ -28,7 +29,7 @@ void multiplex(const std::vector<T>& chan,
                int channels)
 {
     int j = 0;
-    for (int i = chnum; i < out.size(); i += channels) {
+    for (std::size_t i = chnum; i < out.size(); i += channels) {
         out[i] = chan[j++];
     }
 }

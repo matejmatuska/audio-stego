@@ -21,10 +21,7 @@ class PhaseEmbedder : public Embedder<double> {
     private:
         void embed(string &data);
 
-        FFT fft;
-        IFFT ifft;
         vector<double> amps_curr;
-
         vector<double> phases_prev;
         vector<double> phases_curr;
         vector<double> backup;
@@ -32,6 +29,8 @@ class PhaseEmbedder : public Embedder<double> {
         vector<double> diff_curr;
 
         vector<complex<double>> dft;
+        FFT fft;
+        IFFT ifft;
 
         string strdata;
 };
