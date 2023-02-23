@@ -31,7 +31,7 @@ void file_embed(Embedder<T>& embedder, SndfileHandle& cover, SndfileHandle& steg
 
         multiplex(embedder.output(), buffer, 0, stego.channels());
 
-        stego.writef(buffer.data(), SEGMENT_LEN);
+        stego.writef(buffer.data(), read);
     }
 }
 
