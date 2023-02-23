@@ -12,6 +12,7 @@
 #include "phase_extractor.h"
 #include "echo_hiding.h"
 #include "processing.h"
+#include "tone_insertion.h"
 
 #define SEGMENT_LEN 4096 // TODO variable
 
@@ -46,6 +47,9 @@ void embed(std::string& method, SndfileHandle& cover, SndfileHandle& stego) {
         file_embed<double>(*embedder, cover, stego);
     } else if (method == "echo") {
         auto embedder = std::make_unique<EchoHidingEmbedder>(data);
+        file_embed<double>(*embedder, cover, stego);
+    } else if (method == "tone") {
+        auto embedder = std::make_unique<ToneInsertionEmbedder>(data, cover.samplerate());
         file_embed<double>(*embedder, cover, stego);
     } else {
         std::ostringstream s;
@@ -85,6 +89,9 @@ void extract(std::string method, SndfileHandle& stego) {
     }
     else if (method == "echo") {
         auto extractor = std::make_unique<EchoHidingExtractor>();
+        file_extract<double>(*extractor, stego);
+    } else if (method == "tone") {
+        auto extractor = std::make_unique<ToneInsertionExtractor>(stego.samplerate());
         file_extract<double>(*extractor, stego);
     } else {
         std::ostringstream s;

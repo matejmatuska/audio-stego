@@ -51,3 +51,30 @@ void polar_to_cartesian(std::vector<std::complex<double>>& dft,
         dft[i] = std::polar(amps[i], phases[i]);
     }
 }
+
+/**
+ * Gets the closest bin in the DFT corresponding to frequency
+ *
+ * @param freq The frequency
+ * @param fs The sampling frequency
+ * @param N Number of points in the DFT
+ */
+int freq_to_bin(double freq, double fs, unsigned N) {
+    return freq / (fs / N);
+}
+
+/**
+ * Calculate the average power of real signal
+ *
+ * @param signal The signal
+ * @return The average power of the signal
+ */
+double avg_power(std::vector<double>& signal) {
+    double avg_pwr = 0;
+    for (std::size_t i = 0; i < signal.size(); i++) {
+        // the signal is always real -> absolute value omitted
+        avg_pwr += signal[i] * signal[i];
+    }
+    avg_pwr /= signal.size();
+    return avg_pwr;
+}

@@ -9,6 +9,7 @@ add_executable(${PROJECT_NAME}
     phase_embedder.cpp
     phase_extractor.cpp
     processing.cpp
+    tone_insertion.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE -lsndfile -lfftw3)
