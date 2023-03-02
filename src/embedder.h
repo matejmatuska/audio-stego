@@ -18,6 +18,11 @@ class Embedder {
         std::vector<T> &output() { return out_frame; }
 
     protected:
+        /**
+         * Get the next bit to embed
+         *
+         * @return the next bit to embed
+         */
         virtual char get_bit() {
             if (bit_idx == 0) {
                 if (!this->data.get(c))

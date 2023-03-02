@@ -7,8 +7,6 @@
 #include "fft.h"
 #include "processing.h"
 
-using namespace std;
-
 class PhaseEmbedder : public Embedder<double> {
     public:
         PhaseEmbedder(std::istream& data);
@@ -16,23 +14,23 @@ class PhaseEmbedder : public Embedder<double> {
         void embed() override;
 
     protected:
-        size_t frame;
+        std::size_t frame = 0;
+
+        void encodeFirstBlock(std::vector<double>& phases);
 
     private:
-        void embed(string &data);
+        void embed(std::string &data);
 
-        vector<double> amps_curr;
-        vector<double> phases_prev;
-        vector<double> phases_curr;
-        vector<double> backup;
+        std::vector<double> amps_curr;
+        std::vector<double> phases_prev;
+        std::vector<double> phases_curr;
+        std::vector<double> backup;
 
-        vector<double> diff_curr;
+        std::vector<double> diff_curr;
 
-        vector<complex<double>> dft;
+        std::vector<std::complex<double>> dft;
         FFT fft;
         IFFT ifft;
-
-        string strdata;
 };
 
 #endif
