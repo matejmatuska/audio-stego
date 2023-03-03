@@ -92,7 +92,8 @@ EchoHidingExtractor::EchoHidingExtractor() : Extractor<double>(),
 { }
 
 bool EchoHidingExtractor::extract(std::ostream &data) {
-    // TODO maybe the autocorrelation is redundant FFT + IFFT
+    // TODO the autocorrelation + cepstrum could be computed at once
+    // in the same FFT
     autocorrelate.exec();
 
     // calculate autocepstrum (cepstrum of autocorrelation)
@@ -107,18 +108,6 @@ bool EchoHidingExtractor::extract(std::ostream &data) {
     double c1 = autocorrelation[ECHO_DELAY_ONE - 1];
 
     char bit = c0 < c1;
-    std::cout << (int) bit ;
-    c |= bit << bit_idx++;
-
-    if (bit_idx == 8) {
-        if (c == '\0')
-            return false;
-        data << " - ";
-        data.put(c);
-        data.put('\n');
-        c = 0;
-        bit_idx = 0;
-    }
-
+    output_bit(data, bit);
     return true;
 }

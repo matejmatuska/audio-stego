@@ -37,16 +37,12 @@ class EchoHidingExtractor : public Extractor<double> {
         bool extract(std::ostream &data) override;
 
     private:
-        char c = 0;
-        int bit_idx = 0;
-
         std::vector<double> autocorrelation;
         Autocorrelation autocorrelate;
 
         std::vector<std::complex<double>> dft;
         FFT fft;
         IFFT ifft;
-
 };
 
 #endif
