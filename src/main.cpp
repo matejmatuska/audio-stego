@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -101,81 +102,112 @@ void extract(std::string method, SndfileHandle& stego) {
 }
 
 void print_help() {
-    std::cout << "Usage: " << "stego embed COVER_FILE STEGO_FILE\n";
-    std::cout << "       stego extract STEGO_FILE\n";
+    std::cout << "Usage: " << "stego embed -m <method> -cf coverfile -sf stegofile\n";
+    std::cout << "       stego extract -m <method> -sf stegofile\n";
 }
+
+struct args {
+    std::string key;
+    std::string method;
+    std::optional<std::string> coverfile = nullopt;
+    std::optional<std::string> stegofile = nullopt;
+};
 
 #define REQUIRE_ARG(arg) \
         if (i >= argc) { \
-            std::cerr << "Error: Missing argument:" << (arg) << "\n"; \
-            return EXIT_FAILURE; \
+            throw std::invalid_argument("missing argument for: " + (arg)); \
         }
 
 #define REQUIRE_OPT_ARG(opt) \
-        if (++i >= argc) { \
-            std::cerr << "Error: Missing argument for:" << (opt) << "\n"; \
-            return EXIT_FAILURE; \
+        if (++i >= argc || argv[i][0] == '-') { \
+            throw std::invalid_argument("missing argument for: " + (opt)); \
         }
+
+struct args parse_args(int argc, char *argv[]) {
+    struct args res;
+
+    int i;
+    for (i = 2; i < argc; i++) {
+        std::string arg = std::string(argv[i]);
+        if (arg == "-k" || arg == "--key") {
+            REQUIRE_OPT_ARG(arg);
+            res.key = std::string(argv[i]);
+        } else if (arg == "-m" || arg == "--method") {
+            REQUIRE_OPT_ARG(arg);
+            res.method = std::string(argv[i]);
+        } else if (arg == "-cf") {
+            REQUIRE_OPT_ARG(arg);
+            res.coverfile = std::string(argv[i]);
+        } else if (arg == "-sf") {
+            REQUIRE_OPT_ARG(arg);
+            res.stegofile = std::string(argv[i]);
+        } else {
+            throw std::invalid_argument("unknown option: " + arg);
+        }
+    }
+    return res;
+}
 
 int main(int argc, char *argv[]) {
 
-    bool embedding = true;
-    std::string infilename;
-    std::string outfilename;
-    std::string key;
-    std::string method;
-
-    int i;
-    for (i = 1; i < argc; i++) {
-        std::string arg = std::string(argv[i]);
-        if (arg == "--help") {
-            print_help();
-            return EXIT_SUCCESS;
-        }
-        if (arg == "embed") {
-
-        } else if (arg == "extract") {
-            embedding = false;
-        } else if (arg == "-k" || arg == "--key") {
-            REQUIRE_OPT_ARG(arg);
-            key = std::string(argv[i]);
-        } else if (arg == "-m" || arg == "--method") {
-            REQUIRE_OPT_ARG(arg);
-            method = std::string(argv[i]);
-        } else if (embedding) {
-            REQUIRE_ARG("COVER_FILE");
-            infilename = std::string(argv[i++]);
-            REQUIRE_ARG("STEGO_FILE");
-            outfilename = std::string(argv[i++]);
-        } else {
-            REQUIRE_ARG("STEGO_FILE");
-            infilename = argv[i++];
-        }
-    }
-
-    SndfileHandle infile{infilename, SFM_READ};
-    if (!infile) {
-        std::cerr << "Failed to open file: " << infilename << ": ";
-        std::cerr << sf_strerror(NULL) << std::endl;
+    struct args args;
+    try {
+        args = parse_args(argc, argv);
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 
-   // std::cerr << "Channels: " << infile.channels() << "\n";
-   // std::cerr << "Samplerate: " << infile.samplerate() << "\n";
-
-    if (embedding) {
-        SndfileHandle outfile{
-            outfilename, SFM_WRITE, infile.format(), infile.channels(), infile.samplerate()
-        };
-        if (!outfile) {
-            std::cerr << "Failed to open file: " << outfilename << ": ";
-            std::cerr << sf_strerror(NULL) << std::endl;
-            return EXIT_FAILURE;
-        }
-        embed(method, infile, outfile);
-    } else {
-        extract(method, infile);
+    std::string cmd = argv[1];
+    if (cmd == "--help") {
+        print_help();
+        return EXIT_SUCCESS;
     }
 
+    if (!args.stegofile) {
+        std::cerr << "Error: Stego filename not specified\n";
+        return EXIT_FAILURE;
+    }
+
+    //std::cerr << "Channels: " << infile.channels() << "\n";
+    //std::cerr << "Samplerate: " << infile.samplerate() << "\n";
+    //std::cerr << "infile: " << args.infilename << "\n";
+
+    if (cmd == "embed") {
+        if (!args.coverfile) {
+            std::cerr << "Error: Cover filename not specified\n";
+            return EXIT_FAILURE;
+        }
+
+        SndfileHandle coverfile{args.coverfile.value(), SFM_READ};
+        if (!coverfile) {
+            std::cerr << "Failed to open file " << args.coverfile.value() << ": ";
+            std::cerr << coverfile.strError() << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        SndfileHandle stegofile{args.stegofile.value(), SFM_WRITE, coverfile.format(),
+                              coverfile.channels(), coverfile.samplerate()};
+        if (!stegofile) {
+            std::cerr << "Failed to open file " << args.stegofile.value() << ": ";
+            std::cerr << stegofile.strError() << std::endl;
+            return EXIT_FAILURE;
+        }
+        embed(args.method, coverfile, stegofile);
+
+    } else if (cmd == "extract") {
+        SndfileHandle stegofile{args.stegofile.value(), SFM_READ};
+        if (!stegofile) {
+            std::cerr << "Failed to open file " << args.stegofile.value() << ": ";
+            std::cerr << stegofile.strError() << std::endl;
+            return EXIT_FAILURE;
+        }
+        extract(args.method, stegofile);
+    } else {
+        std::cerr << "Unrecognized command: \"" << cmd << "\", see --help\n";
+        return EXIT_FAILURE;
+    }
+
+    // UNREACHABLE
     return EXIT_SUCCESS;
 }
