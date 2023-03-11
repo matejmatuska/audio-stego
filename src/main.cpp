@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -37,20 +38,20 @@ void file_embed(Embedder<T>& embedder, SndfileHandle& cover, SndfileHandle& steg
     }
 }
 
-void embed(std::string& method, SndfileHandle& cover, SndfileHandle& stego) {
-    std::istream &data = std::cin;
-    // TODO allow for a file arg
+void embed(std::string &method, SndfileHandle &cover, SndfileHandle &stego,
+           std::istream &input = std::cin) {
     if (method == "lsb") {
-        auto embedder = std::make_unique<LsbEmbedder<short>>(data);
+        auto embedder = std::make_unique<LsbEmbedder<short>>(input);
         file_embed<short>(*embedder, cover, stego);
     } else if (method == "phase") {
-        auto embedder = std::make_unique<PhaseEmbedder>(data);
+        auto embedder = std::make_unique<PhaseEmbedder>(input);
         file_embed<double>(*embedder, cover, stego);
     } else if (method == "echo") {
-        auto embedder = std::make_unique<EchoHidingEmbedder>(data);
+        auto embedder = std::make_unique<EchoHidingEmbedder>(input);
         file_embed<double>(*embedder, cover, stego);
     } else if (method == "tone") {
-        auto embedder = std::make_unique<ToneInsertionEmbedder>(data, cover.samplerate());
+        auto embedder =
+            std::make_unique<ToneInsertionEmbedder>(input, cover.samplerate());
         file_embed<double>(*embedder, cover, stego);
     } else {
         std::ostringstream s;
@@ -59,41 +60,40 @@ void embed(std::string& method, SndfileHandle& cover, SndfileHandle& stego) {
     }
 }
 
-template<typename T>
-void file_extract(Extractor<T>& extractor, SndfileHandle& stego) {
+template <typename T>
+void file_extract(Extractor<T>& extractor, SndfileHandle& stego,
+                  std::ostream& output) {
     std::vector<T> buffer(SEGMENT_LEN * stego.channels());
     std::vector<T> left(SEGMENT_LEN);
     std::vector<T> right(SEGMENT_LEN);
-
-    std::ostream& out = std::cout;
 
     sf_count_t read = 0;
     while ((read = stego.readf(buffer.data(), SEGMENT_LEN)) > 0) {
 
         demultiplex(buffer, extractor.input(), 0, stego.channels());
 
-        bool cont = extractor.extract(out);
+        bool cont = extractor.extract(output);
         if (!cont) {
             break;
         }
     }
 }
 
-void extract(std::string method, SndfileHandle& stego) {
+void extract(std::string method, SndfileHandle& stego, std::ostream& output = std::cout) {
     if (method == "lsb") {
         auto extractor = std::make_unique<LSBExtractor<short>>();
-        file_extract<short>(*extractor, stego);
+        file_extract<short>(*extractor, stego, output);
     }
     else if (method == "phase") {
         auto extractor = std::make_unique<PhaseExtractor>();
-        file_extract<double>(*extractor, stego);
+        file_extract<double>(*extractor, stego, output);
     }
     else if (method == "echo") {
         auto extractor = std::make_unique<EchoHidingExtractor>();
-        file_extract<double>(*extractor, stego);
+        file_extract<double>(*extractor, stego, output);
     } else if (method == "tone") {
         auto extractor = std::make_unique<ToneInsertionExtractor>(stego.samplerate());
-        file_extract<double>(*extractor, stego);
+        file_extract<double>(*extractor, stego, output);
     } else {
         std::ostringstream s;
         s << "Error: Unkown method: " << method << std::endl;
@@ -102,8 +102,8 @@ void extract(std::string method, SndfileHandle& stego) {
 }
 
 void print_help() {
-    std::cout << "Usage: " << "stego embed -m <method> -cf coverfile -sf stegofile\n";
-    std::cout << "       stego extract -m <method> -sf stegofile\n";
+    std::cout << "Usage: " << "stego embed -m <method> -cf coverfile -sf stegofile [-mf messagefile]\n";
+    std::cout << "       stego extract -m <method> -sf stegofile [-mf messagefile] \n";
 }
 
 struct args {
@@ -111,6 +111,7 @@ struct args {
     std::string method;
     std::optional<std::string> coverfile = nullopt;
     std::optional<std::string> stegofile = nullopt;
+    std::optional<std::string> msgfile = nullopt;
 };
 
 #define REQUIRE_ARG(arg) \
@@ -141,6 +142,9 @@ struct args parse_args(int argc, char *argv[]) {
         } else if (arg == "-sf") {
             REQUIRE_OPT_ARG(arg);
             res.stegofile = std::string(argv[i]);
+        } else if (arg == "-mf") {
+            REQUIRE_OPT_ARG(arg);
+            res.msgfile = std::string(argv[i]);
         } else {
             throw std::invalid_argument("unknown option: " + arg);
         }
@@ -193,6 +197,15 @@ int main(int argc, char *argv[]) {
             std::cerr << stegofile.strError() << std::endl;
             return EXIT_FAILURE;
         }
+
+        if (args.msgfile) {
+            ifstream file{args.msgfile.value()};
+            if (!file.is_open()) {
+                std::cerr << "Unable to open file " << args.msgfile.value() << std::endl;
+                return EXIT_FAILURE;
+            }
+            embed(args.method, coverfile, stegofile, file);
+        }
         embed(args.method, coverfile, stegofile);
 
     } else if (cmd == "extract") {
@@ -201,6 +214,14 @@ int main(int argc, char *argv[]) {
             std::cerr << "Failed to open file " << args.stegofile.value() << ": ";
             std::cerr << stegofile.strError() << std::endl;
             return EXIT_FAILURE;
+        }
+        if (args.msgfile) {
+            ofstream file{args.msgfile.value()};
+            if (!file.is_open()) {
+                std::cerr << "Unable to open file " << args.msgfile.value() << std::endl;
+                return EXIT_FAILURE;
+            }
+            extract(args.method, stegofile, file);
         }
         extract(args.method, stegofile);
     } else {
