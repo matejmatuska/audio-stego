@@ -17,8 +17,11 @@
 #define USE_SMOOTHING 1
 #define SMOOTHING_PCT 0.95
 
-EchoHidingEmbedder::EchoHidingEmbedder(std::istream& data)
-    : Embedder<double>::Embedder(data),
+EchoHidingEmbedder::EchoHidingEmbedder(std::istream& data,
+                                       std::size_t frame_size,
+                                       unsigned echo_delay_zero,
+                                       unsigned echo_delay_one)
+    : Embedder<double>::Embedder(data, frame_size),
       kernel_zero(KERNEL_LEN, 0),
       kernel_one(KERNEL_LEN, 0),
       echo_zero(in_frame.size() + KERNEL_LEN - 1, 0),
@@ -27,8 +30,8 @@ EchoHidingEmbedder::EchoHidingEmbedder(std::istream& data)
       conv_zero(in_frame, kernel_zero, echo_zero),
       conv_one(in_frame, kernel_one, echo_one)
 {
-  kernel_zero[ECHO_DELAY_ZERO - 1] = ECHO_AMP_ZERO;
-  kernel_one[ECHO_DELAY_ONE - 1] = ECHO_AMP_ONE;
+  kernel_zero[echo_delay_zero - 1] = ECHO_AMP_ZERO;
+  kernel_one[echo_delay_one - 1] = ECHO_AMP_ONE;
 }
 
 template <class ForwardIt>
@@ -85,8 +88,12 @@ void EchoHidingEmbedder::embed()
   next_bit = get_bit();
 }
 
-EchoHidingExtractor::EchoHidingExtractor()
-    : Extractor<double>(),
+EchoHidingExtractor::EchoHidingExtractor(std::size_t frame_size,
+                                         unsigned echo_delay_zero,
+                                         unsigned echo_delay_one)
+    : Extractor<double>(frame_size),
+      echo_delay_zero(echo_delay_zero),
+      echo_delay_one(echo_delay_one),
       // TODO optimize these sizes for FFT
       autocorrelation(2 * in_frame.size() - 1),
       autocorrelate(in_frame, autocorrelation),
@@ -110,8 +117,8 @@ bool EchoHidingExtractor::extract(std::ostream& data)
   }
   ifft.exec();
 
-  double c0 = autocorrelation[ECHO_DELAY_ZERO - 1];
-  double c1 = autocorrelation[ECHO_DELAY_ONE - 1];
+  double c0 = autocorrelation[echo_delay_zero - 1];
+  double c1 = autocorrelation[echo_delay_one - 1];
 
   char bit = c0 < c1;
   output_bit(data, bit);

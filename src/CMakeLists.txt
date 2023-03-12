@@ -10,6 +10,7 @@ add_executable(${PROJECT_NAME}
     phase_extractor.cpp
     processing.cpp
     tone_insertion.cpp
+    methods.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE -lsndfile -lfftw3)

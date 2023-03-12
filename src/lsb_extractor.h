@@ -2,14 +2,13 @@
 #define LSB_EXTRACTOR_H
 
 #include <cstddef>
-#include <istream>
 
 #include "extractor.h"
 
 template <typename T>
 class LSBExtractor : public Extractor<T> {
  public:
-  LSBExtractor() : Extractor<T>(){};
+  LSBExtractor(T bitmask) : Extractor<T>(){};
 
   bool extract(std::ostream& data) override
   {

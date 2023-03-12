@@ -13,12 +13,16 @@
 #define OTHER_PWR_PCT 0.001
 
 ToneInsertionEmbedder::ToneInsertionEmbedder(std::istream& data,
-                                             double samplerate)
-    : Embedder<double>(data),
+                                             std::size_t frame_size,
+                                             double samplerate,
+                                             double freq_zero,
+                                             double freq_one)
+    : Embedder<double>(data, frame_size),
       dft(in_frame.size()),
       fft(in_frame.size(), in_frame, dft),
       ifft(in_frame.size(), dft, out_frame),
-      samplerate(samplerate)
+      bin_f0(freq_to_bin(freq_zero, samplerate, dft.size())),
+      bin_f1(freq_to_bin(freq_one, samplerate, dft.size()))
 {
 }
 
@@ -29,8 +33,6 @@ void ToneInsertionEmbedder::embed()
   fft.exec();
 
   // insert the tone
-  int bin_f0 = freq_to_bin(FREQ_ZERO, samplerate, dft.size());
-  int bin_f1 = freq_to_bin(FREQ_ONE, samplerate, dft.size());
   double phase_f0 = std::arg(dft[bin_f0]);
   double phase_f1 = std::arg(dft[bin_f1]);
 
@@ -51,11 +53,15 @@ void ToneInsertionEmbedder::embed()
   ifft.exec();
 }
 
-ToneInsertionExtractor::ToneInsertionExtractor(double samplerate)
-    : Extractor<double>(),
+ToneInsertionExtractor::ToneInsertionExtractor(std::size_t frame_size,
+                                               double samplerate,
+                                               double freq_zero,
+                                               double freq_one)
+    : Extractor<double>(frame_size),
       dft(in_frame.size()),
       fft(in_frame.size(), in_frame, dft),
-      samplerate(samplerate)
+      bin_f0(freq_to_bin(freq_zero, samplerate, dft.size())),
+      bin_f1(freq_to_bin(freq_one, samplerate, dft.size()))
 {
 }
 
@@ -65,8 +71,6 @@ bool ToneInsertionExtractor::extract(std::ostream& data)
 
   fft.exec();
 
-  int bin_f0 = freq_to_bin(FREQ_ZERO, samplerate, dft.size());
-  int bin_f1 = freq_to_bin(FREQ_ONE, samplerate, dft.size());
   // TODO we might need to norm by N - see Parsevals theorem
   double p0 = std::norm(dft[bin_f0]);
   double p1 = std::norm(dft[bin_f1]);

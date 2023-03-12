@@ -9,7 +9,10 @@
 
 class EchoHidingEmbedder : public Embedder<double> {
  public:
-  EchoHidingEmbedder(std::istream& data);
+  EchoHidingEmbedder(std::istream& data,
+                     std::size_t frame_size,
+                     unsigned echo_delay_zero,
+                     unsigned echo_delay_one);
 
   void embed() override;
 
@@ -31,11 +34,16 @@ class EchoHidingEmbedder : public Embedder<double> {
 
 class EchoHidingExtractor : public Extractor<double> {
  public:
-  EchoHidingExtractor();
+  EchoHidingExtractor(std::size_t frame_size,
+                      unsigned echo_delay_zero,
+                      unsigned echo_delay_one);
 
   bool extract(std::ostream& data) override;
 
  private:
+  unsigned echo_delay_zero;
+  unsigned echo_delay_one;
+
   std::vector<double> autocorrelation;
   Autocorrelation autocorrelate;
 

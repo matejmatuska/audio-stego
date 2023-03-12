@@ -5,8 +5,8 @@
 #include "phase_embedder.h"
 #include "processing.h"
 
-PhaseEmbedder::PhaseEmbedder(std::istream& data)
-    : Embedder(data),
+PhaseEmbedder::PhaseEmbedder(std::istream& data, std::size_t frame_size)
+    : Embedder(data, frame_size),
       amps_curr(in_frame.size()),
       phases_prev(in_frame.size()),
       phases_curr(in_frame.size()),

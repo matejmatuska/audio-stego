@@ -1,8 +1,9 @@
 #include "phase_extractor.h"
 #include "processing.h"
 
-PhaseExtractor::PhaseExtractor()
-    : phases(in_frame.size()),
+PhaseExtractor::PhaseExtractor(std::size_t frame_size)
+    : Extractor<double>(frame_size),
+      phases(in_frame.size()),
       dft(in_frame.size()),
       fft(in_frame.size(), in_frame, dft)
 {

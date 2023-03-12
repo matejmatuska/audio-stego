@@ -1,12 +1,18 @@
 #ifndef LSB_EMBEDDER_H
 #define LSB_EMBEDDER_H
 
+#include <cstddef>
+
 #include "embedder.h"
 
 template <class T>
 class LsbEmbedder : public Embedder<T> {
  public:
-  using Embedder<T>::Embedder;
+  LsbEmbedder(std::istream& data,
+              T bitmask)
+      : Embedder<T>(data)
+  {
+  }
 
   void embed() override
   {

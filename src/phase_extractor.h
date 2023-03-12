@@ -2,6 +2,7 @@
 #define PHASE_EXTRACTOR_H
 
 #include <complex>
+#include <cstddef>
 #include <ostream>
 #include <vector>
 
@@ -11,7 +12,7 @@
 
 class PhaseExtractor : public Extractor<double> {
  public:
-  PhaseExtractor();
+  PhaseExtractor(std::size_t frame_size);
 
   bool extract(std::ostream& data) override;
 
