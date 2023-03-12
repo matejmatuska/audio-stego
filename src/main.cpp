@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -101,9 +102,42 @@ void extract(std::string method, SndfileHandle& stego, std::ostream& output = st
     }
 }
 
+void print_fileinfo(SndfileHandle& file, const std::string& filename) {
+    std::cout << setw(10) << left;
+    std::cout << "Filename" << ": " << filename << '\n';
+    std::cout << setw(10) << left;
+    std::cout << "Channels" << ": " << file.channels() << '\n';
+    std::cout << setw(10) << left;
+    std::cout << "Samplerate" << ": " << file.samplerate() << '\n';
+    std::cout << setw(10) << left;
+    std::cout << "Format" << ": ";
+
+    SF_FORMAT_INFO format_info;
+    format_info.format = file.format() & SF_FORMAT_TYPEMASK;
+    if (file.command(SFC_GET_FORMAT_INFO, &format_info, sizeof(format_info)) == 0)
+        std::cout << format_info.name << '\n';
+    else
+        std::cout << "Failed to determine\n";
+
+    std::cout << setw(10) << left;
+    std::cout << "Encoding" << ": ";
+
+    format_info.format = file.format() & SF_FORMAT_SUBMASK;
+    if (file.command(SFC_GET_FORMAT_INFO, &format_info, sizeof(format_info)) == 0)
+        std::cout << format_info.name << '\n';
+    else
+        std::cout << "Failed to determine\n";
+
+    double duration = file.frames() / (double) file.samplerate();
+    std::cout << setw(10) << left;
+    std::cout << "Duration" << ": " << file.frames() << " samples = "
+              << duration << " seconds\n";
+}
+
 void print_help() {
-    std::cout << "Usage: " << "stego embed -m <method> -cf coverfile -sf stegofile [-mf messagefile]\n";
-    std::cout << "       stego extract -m <method> -sf stegofile [-mf messagefile] \n";
+    std::cout << "Usage: " << "stego embed -m method -cf coverfile -sf stegofile [-mf messagefile]\n";
+    std::cout << "       stego extract -m method -sf stegofile [-mf messagefile]\n";
+    std::cout << "       stego info <filename>\n";
 }
 
 struct args {
@@ -154,11 +188,8 @@ struct args parse_args(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-    struct args args;
-    try {
-        args = parse_args(argc, argv);
-    } catch (const std::invalid_argument& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+    if (argc < 2) {
+        std::cerr << "Error: No command specified, see --help\n";
         return EXIT_FAILURE;
     }
 
@@ -168,14 +199,33 @@ int main(int argc, char *argv[]) {
         return EXIT_SUCCESS;
     }
 
+    if (cmd == "info") {
+        if (argc != 3) {
+            std::cerr << "Error: Expected one argument for info, see --help\n";
+            return EXIT_FAILURE;
+        }
+        SndfileHandle file{argv[2], SFM_READ};
+        if (!file) {
+            std::cerr << "Failed to open file " << argv[2] << ": ";
+            std::cerr << file.strError() << std::endl;
+            return EXIT_FAILURE;
+        }
+        print_fileinfo(file, argv[2]);
+        return EXIT_SUCCESS;
+    }
+
+    struct args args;
+    try {
+        args = parse_args(argc, argv);
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+
     if (!args.stegofile) {
         std::cerr << "Error: Stego filename not specified\n";
         return EXIT_FAILURE;
     }
-
-    //std::cerr << "Channels: " << infile.channels() << "\n";
-    //std::cerr << "Samplerate: " << infile.samplerate() << "\n";
-    //std::cerr << "infile: " << args.infilename << "\n";
 
     if (cmd == "embed") {
         if (!args.coverfile) {
