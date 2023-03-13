@@ -5,6 +5,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <sndfile.hh>
@@ -38,27 +39,33 @@ void file_embed(Embedder<T>& embedder,
   }
 }
 
+using embedder_variant = std::variant<std::unique_ptr<Embedder<double>>,
+                                      std::unique_ptr<Embedder<short>>>;
+
+embedder_variant make_embedder(const std::string& method,
+                               const SndfileHandle& cover,
+                               std::istream& input)
+{
+  if (method == "lsb") {
+    return std::make_unique<LsbEmbedder<short>>(input);
+  } else if (method == "phase") {
+    return std::make_unique<PhaseEmbedder>(input);
+  } else if (method == "echo") {
+    return std::make_unique<EchoHidingEmbedder>(input);
+  } else if (method == "tone") {
+    return std::make_unique<ToneInsertionEmbedder>(input, cover.samplerate());
+  }
+
+  throw std::invalid_argument("Error: Unkown method: " + method);
+}
+
 void embed(std::string& method,
            SndfileHandle& cover,
            SndfileHandle& stego,
            std::istream& input = std::cin)
 {
-  if (method == "lsb") {
-    auto embedder = std::make_unique<LsbEmbedder<short>>(input);
-    file_embed<short>(*embedder, cover, stego);
-  } else if (method == "phase") {
-    auto embedder = std::make_unique<PhaseEmbedder>(input);
-    file_embed<double>(*embedder, cover, stego);
-  } else if (method == "echo") {
-    auto embedder = std::make_unique<EchoHidingEmbedder>(input);
-    file_embed<double>(*embedder, cover, stego);
-  } else if (method == "tone") {
-    auto embedder =
-        std::make_unique<ToneInsertionEmbedder>(input, cover.samplerate());
-    file_embed<double>(*embedder, cover, stego);
-  } else {
-    throw std::invalid_argument("Error: Unkown method: " + method);
-  }
+  embedder_variant embedder = make_embedder(method, cover, input);
+  std::visit([&](auto&& v) { file_embed(*v, cover, stego); }, embedder);
 }
 
 template <typename T>
@@ -81,26 +88,30 @@ void file_extract(Extractor<T>& extractor,
   }
 }
 
-void extract(std::string method,
+using extractor_variant = std::variant<std::unique_ptr<Extractor<double>>,
+                                       std::unique_ptr<Extractor<short>>>;
+
+extractor_variant make_extractor(std::string method, SndfileHandle& stego)
+{
+  if (method == "lsb") {
+    return std::make_unique<LSBExtractor<short>>();
+  } else if (method == "phase") {
+    return std::make_unique<PhaseExtractor>();
+  } else if (method == "echo") {
+    return std::make_unique<EchoHidingExtractor>();
+  } else if (method == "tone") {
+    return std::make_unique<ToneInsertionExtractor>(stego.samplerate());
+  }
+
+  throw std::invalid_argument("Error: Unkown method: " + method);
+}
+
+void extract(const std::string& method,
              SndfileHandle& stego,
              std::ostream& output = std::cout)
 {
-  if (method == "lsb") {
-    auto extractor = std::make_unique<LSBExtractor<short>>();
-    file_extract<short>(*extractor, stego, output);
-  } else if (method == "phase") {
-    auto extractor = std::make_unique<PhaseExtractor>();
-    file_extract<double>(*extractor, stego, output);
-  } else if (method == "echo") {
-    auto extractor = std::make_unique<EchoHidingExtractor>();
-    file_extract<double>(*extractor, stego, output);
-  } else if (method == "tone") {
-    auto extractor =
-        std::make_unique<ToneInsertionExtractor>(stego.samplerate());
-    file_extract<double>(*extractor, stego, output);
-  } else {
-    throw std::invalid_argument("Error: Unkown method: " + method);
-  }
+  extractor_variant extractor = make_extractor(method, stego);
+  std::visit([&](auto&& v) { file_extract(*v, stego, output); }, extractor);
 }
 
 void print_fileinfo(SndfileHandle& file, const std::string& filename)
