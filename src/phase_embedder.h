@@ -8,29 +8,29 @@
 #include "processing.h"
 
 class PhaseEmbedder : public Embedder<double> {
-    public:
-        PhaseEmbedder(std::istream& data);
+ public:
+  PhaseEmbedder(std::istream& data);
 
-        void embed() override;
+  void embed() override;
 
-    protected:
-        std::size_t frame = 0;
+ protected:
+  std::size_t frame = 0;
 
-        void encodeFirstBlock(std::vector<double>& phases);
+  void encodeFirstBlock(std::vector<double>& phases);
 
-    private:
-        void embed(std::string &data);
+ private:
+  void embed(std::string& data);
 
-        std::vector<double> amps_curr;
-        std::vector<double> phases_prev;
-        std::vector<double> phases_curr;
-        std::vector<double> backup;
+  std::vector<double> amps_curr;
+  std::vector<double> phases_prev;
+  std::vector<double> phases_curr;
+  std::vector<double> backup;
 
-        std::vector<double> diff_curr;
+  std::vector<double> diff_curr;
 
-        std::vector<std::complex<double>> dft;
-        FFT fft;
-        IFFT ifft;
+  std::vector<std::complex<double>> dft;
+  FFT fft;
+  IFFT ifft;
 };
 
 #endif

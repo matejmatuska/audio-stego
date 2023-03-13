@@ -4,45 +4,46 @@
 #include <ostream>
 #include <vector>
 
-template<typename T>
+template <typename T>
 class Extractor {
-    public:
-        Extractor() : in_frame(4096) {};
+ public:
+  Extractor() : in_frame(4096){};
 
-        /**
-         * @return True if should continue else false
-         */
-        virtual bool extract(std::ostream &data) = 0;
+  /**
+   * @return True if should continue else false
+   */
+  virtual bool extract(std::ostream& data) = 0;
 
-        const std::vector<T>& input() const { return in_frame; }
-        std::vector<T>& input() { return in_frame; }
+  const std::vector<T>& input() const { return in_frame; }
+  std::vector<T>& input() { return in_frame; }
 
-    protected:
-        virtual void output_bit(std::ostream& out, char bit) {
+ protected:
+  virtual void output_bit(std::ostream& out, char bit)
+  {
 #ifdef DEBUG
-            std::cout << (int) bit ;
+    std::cout << (int)bit;
 #endif
-            c |= bit << bit_idx++;
+    c |= bit << bit_idx++;
 
-            if (bit_idx == 8) {
-                if (c == '\0')
-                    return;
+    if (bit_idx == 8) {
+      if (c == '\0')
+        return;
 #ifdef DEBUG
-                data << " - ";
-                data.put(c);
-                data.put('\n');
+      data << " - ";
+      data.put(c);
+      data.put('\n');
 #else
-                out.put(c);
+      out.put(c);
 #endif
-                c = 0;
-                bit_idx = 0;
-            }
-        }
-        std::vector<T> in_frame;
+      c = 0;
+      bit_idx = 0;
+    }
+  }
+  std::vector<T> in_frame;
 
-    private:
-        int bit_idx = 0;
-        char c = 0;
+ private:
+  int bit_idx = 0;
+  char c = 0;
 };
 
 #endif

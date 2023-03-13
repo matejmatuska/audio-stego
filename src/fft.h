@@ -9,36 +9,36 @@
 using namespace std;
 
 class FFT {
-    public:
-        // TODO remove N
-        FFT(unsigned N, vector<double>& in, vector<complex<double>>& out);
+ public:
+  // TODO remove N
+  FFT(unsigned N, vector<double>& in, vector<complex<double>>& out);
 
-        void exec();
+  void exec();
 
-        ~FFT();
+  ~FFT();
 
-    private:
-        unsigned N;
-        fftw_plan plan;
+ private:
+  unsigned N;
+  fftw_plan plan;
 
-        vector<double>* in;
-        vector<complex<double>>* out;
+  vector<double>* in;
+  vector<complex<double>>* out;
 };
 
 class IFFT {
-    public:
-        IFFT(unsigned N, vector<complex<double>>& in, vector<double>& out);
+ public:
+  IFFT(unsigned N, vector<complex<double>>& in, vector<double>& out);
 
-        void exec();
+  void exec();
 
-        ~IFFT();
+  ~IFFT();
 
-    private:
-        unsigned N;
-        fftw_plan plan;
+ private:
+  unsigned N;
+  fftw_plan plan;
 
-        vector<complex<double>>* in;
-        vector<double>* out;
+  vector<complex<double>>* in;
+  vector<double>* out;
 };
 
 #endif
