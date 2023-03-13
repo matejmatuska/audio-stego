@@ -55,9 +55,7 @@ void embed(std::string &method, SndfileHandle &cover, SndfileHandle &stego,
             std::make_unique<ToneInsertionEmbedder>(input, cover.samplerate());
         file_embed<double>(*embedder, cover, stego);
     } else {
-        std::ostringstream s;
-        s << "Error: Unkown method: " << method << std::endl;
-        throw std::invalid_argument(s.str());
+        throw std::invalid_argument("Error: Unkown method: " + method);
     }
 }
 
@@ -96,9 +94,7 @@ void extract(std::string method, SndfileHandle& stego, std::ostream& output = st
         auto extractor = std::make_unique<ToneInsertionExtractor>(stego.samplerate());
         file_extract<double>(*extractor, stego, output);
     } else {
-        std::ostringstream s;
-        s << "Error: Unkown method: " << method << std::endl;
-        throw std::invalid_argument(s.str());
+        throw std::invalid_argument("Error: Unkown method: " + method);
     }
 }
 
@@ -248,16 +244,23 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        std::shared_ptr<istream> input;
         if (args.msgfile) {
-            ifstream file{args.msgfile.value()};
-            if (!file.is_open()) {
+            ifstream *file = new ifstream(args.msgfile.value());
+            if (!file->is_open()) {
                 std::cerr << "Unable to open file " << args.msgfile.value() << std::endl;
                 return EXIT_FAILURE;
             }
-            embed(args.method, coverfile, stegofile, file);
+            input.reset(file);
+        } else {
+            input.reset(&std::cin, [](...){});
         }
-        embed(args.method, coverfile, stegofile);
-
+        try {
+            embed(args.method, coverfile, stegofile, *input);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return EXIT_FAILURE;
+        }
     } else if (cmd == "extract") {
         SndfileHandle stegofile{args.stegofile.value(), SFM_READ};
         if (!stegofile) {
@@ -265,15 +268,24 @@ int main(int argc, char *argv[]) {
             std::cerr << stegofile.strError() << std::endl;
             return EXIT_FAILURE;
         }
+
+        std::shared_ptr<ostream> output;
         if (args.msgfile) {
-            ofstream file{args.msgfile.value()};
-            if (!file.is_open()) {
+            ofstream *file = new ofstream(args.msgfile.value());
+            if (!file->is_open()) {
                 std::cerr << "Unable to open file " << args.msgfile.value() << std::endl;
                 return EXIT_FAILURE;
             }
-            extract(args.method, stegofile, file);
+            output.reset(file);
+        } else {
+            output.reset(&std::cout, [](...){});
         }
-        extract(args.method, stegofile);
+        try {
+            extract(args.method, stegofile);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return EXIT_FAILURE;
+        }
     } else {
         std::cerr << "Unrecognized command: \"" << cmd << "\", see --help\n";
         return EXIT_FAILURE;
