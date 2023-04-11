@@ -1,5 +1,7 @@
 #include "methods.h"
+#include <memory>
 #include "echo_hiding.h"
+#include "echo_hiding_hc.h"
 #include "lsb_embedder.h"
 #include "lsb_extractor.h"
 #include "phase_embedder.h"
@@ -86,4 +88,24 @@ extractor_variant ToneInsertionMethod::make_extractor() const
 ssize_t ToneInsertionMethod::capacity(std::size_t samples) const
 {
   return samples / frame_size;
+}
+
+EchoHidingHCMethod::EchoHidingHCMethod(const Params& params)
+{
+  frame_size = params.get_or("framesize", 4096);
+}
+
+embedder_variant EchoHidingHCMethod::make_embedder(InputBitStream& input) const
+{
+  return make_unique<EchoHidingHCEmbedder>(input);
+}
+
+extractor_variant EchoHidingHCMethod::make_extractor() const
+{
+  return make_unique<EchoHidingHCExtractor>();
+}
+
+ssize_t EchoHidingHCMethod::capacity(std::size_t samples) const
+{
+  return samples / frame_size * 4;
 }

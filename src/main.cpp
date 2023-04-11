@@ -37,6 +37,7 @@ void register_methods()
   methods_map["phase"] = create_unique<PhaseMethod>;
   methods_map["echo"] = create_unique<EchoHidingMethod>;
   methods_map["tone"] = create_unique<ToneInsertionMethod>;
+  methods_map["echo-hc"] = create_unique<EchoHidingHCMethod>;
 }
 
 template <typename T>

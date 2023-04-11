@@ -15,6 +15,7 @@ add_executable(${PROJECT_NAME}
     bitvector.cpp
     ibitstream.cpp
     obitstream.cpp
+    echo_hiding_hc.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE -lsndfile -lfftw3)

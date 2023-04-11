@@ -122,4 +122,15 @@ class ToneInsertionMethod : public Method {
   unsigned samplerate;
 };
 
+class EchoHidingHCMethod : public Method {
+ public:
+  EchoHidingHCMethod(const Params& params);
+  embedder_variant make_embedder(InputBitStream& input) const override;
+  extractor_variant make_extractor() const override;
+  virtual ssize_t capacity(std::size_t samples) const override;
+
+ protected:
+  std::size_t frame_size;
+};
+
 #endif  // METHODS_H
