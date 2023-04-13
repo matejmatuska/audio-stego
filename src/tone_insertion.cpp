@@ -12,7 +12,7 @@
 #define EMBEDDING_PWR_PCT 0.25
 #define OTHER_PWR_PCT 0.001
 
-ToneInsertionEmbedder::ToneInsertionEmbedder(std::istream& data,
+ToneInsertionEmbedder::ToneInsertionEmbedder(InputBitStream& data,
                                              std::size_t frame_size,
                                              double samplerate,
                                              double freq_zero,
@@ -41,7 +41,7 @@ void ToneInsertionEmbedder::embed()
   double magnitude = sqrt(pwr);
   double magnitude_other = sqrt(pwr_other);
 
-  char bit = get_bit();
+  char bit = data.next_bit();
   if (bit) {
     dft[bin_f1] = std::polar(magnitude, phase_f1);
     dft[bin_f0] = std::polar(magnitude_other, phase_f0);
@@ -65,7 +65,7 @@ ToneInsertionExtractor::ToneInsertionExtractor(std::size_t frame_size,
 {
 }
 
-bool ToneInsertionExtractor::extract(std::ostream& data)
+bool ToneInsertionExtractor::extract(OutputBitStream& data)
 {
   double avg_pwr = avg_power(in_frame);
 
@@ -76,7 +76,7 @@ bool ToneInsertionExtractor::extract(std::ostream& data)
   double p1 = std::norm(dft[bin_f1]);
 
   char bit = (avg_pwr / p0) > (avg_pwr / p1);
-  output_bit(data, bit);
+  data.output_bit(bit);
 
   return true;
 }

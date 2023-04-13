@@ -17,7 +17,7 @@
 #define USE_SMOOTHING 1
 #define SMOOTHING_PCT 0.95
 
-EchoHidingEmbedder::EchoHidingEmbedder(std::istream& data,
+EchoHidingEmbedder::EchoHidingEmbedder(InputBitStream& data,
                                        std::size_t frame_size,
                                        unsigned echo_delay_zero,
                                        unsigned echo_delay_one)
@@ -85,7 +85,7 @@ void EchoHidingEmbedder::embed()
     }
   }
   bit = next_bit;
-  next_bit = get_bit();
+  next_bit = data.next_bit();
 }
 
 EchoHidingExtractor::EchoHidingExtractor(std::size_t frame_size,
@@ -103,7 +103,7 @@ EchoHidingExtractor::EchoHidingExtractor(std::size_t frame_size,
 {
 }
 
-bool EchoHidingExtractor::extract(std::ostream& data)
+bool EchoHidingExtractor::extract(OutputBitStream& data)
 {
   // TODO the autocorrelation + cepstrum could be computed at once
   // in the same FFT
@@ -121,6 +121,6 @@ bool EchoHidingExtractor::extract(std::ostream& data)
   double c1 = autocorrelation[echo_delay_one - 1];
 
   char bit = c0 < c1;
-  output_bit(data, bit);
+  data.output_bit(bit);
   return true;
 }

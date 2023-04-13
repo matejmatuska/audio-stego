@@ -9,7 +9,7 @@
 
 class ToneInsertionEmbedder : public Embedder<double> {
  public:
-  ToneInsertionEmbedder(std::istream& data,
+  ToneInsertionEmbedder(InputBitStream& data,
                         std::size_t frame_size,
                         double samplerate,
                         double freq_zero,
@@ -33,7 +33,7 @@ class ToneInsertionExtractor : public Extractor<double> {
                          double freq_zero,
                          double freq_one);
 
-  bool extract(std::ostream& data) override;
+  bool extract(OutputBitStream& data) override;
 
  private:
   std::vector<std::complex<double>> dft;

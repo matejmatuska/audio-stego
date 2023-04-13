@@ -6,7 +6,7 @@
 #include "phase_extractor.h"
 #include "tone_insertion.h"
 
-embedder_variant LSBMethod::make_embedder(std::istream& input) const
+embedder_variant LSBMethod::make_embedder(InputBitStream& input) const
 {
   return make_unique<LsbEmbedder<short>>(input, bitmask);
 }
@@ -25,7 +25,7 @@ PhaseMethod::PhaseMethod(const Params& params)
 {
   frame_size = params.get_or("framesize", 4096);
 };
-embedder_variant PhaseMethod::make_embedder(std::istream& input) const
+embedder_variant PhaseMethod::make_embedder(InputBitStream& input) const
 {
   return make_unique<PhaseEmbedder>(input, frame_size);
 }
@@ -47,7 +47,7 @@ EchoHidingMethod::EchoHidingMethod(const Params& params)
   delay1 = params.get_or("delay1", 300);
 }
 
-embedder_variant EchoHidingMethod::make_embedder(std::istream& input) const
+embedder_variant EchoHidingMethod::make_embedder(InputBitStream& input) const
 {
   return std::make_unique<EchoHidingEmbedder>(input, frame_size, delay0,
                                               delay1);
@@ -71,7 +71,7 @@ ToneInsertionMethod::ToneInsertionMethod(const Params& params)
   samplerate = params.get_ul("samplerate");
 }
 
-embedder_variant ToneInsertionMethod::make_embedder(std::istream& input) const
+embedder_variant ToneInsertionMethod::make_embedder(InputBitStream& input) const
 {
   return make_unique<ToneInsertionEmbedder>(input, frame_size, samplerate,
                                             freq0, freq1);

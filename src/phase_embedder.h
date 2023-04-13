@@ -9,7 +9,7 @@
 
 class PhaseEmbedder : public Embedder<double> {
  public:
-  PhaseEmbedder(std::istream& data, std::size_t frame_size);
+  PhaseEmbedder(InputBitStream& data, std::size_t frame_size);
 
   void embed() override;
 

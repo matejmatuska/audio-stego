@@ -14,12 +14,12 @@ class PhaseExtractor : public Extractor<double> {
  public:
   PhaseExtractor(std::size_t frame_size);
 
-  bool extract(std::ostream& data) override;
+  bool extract(OutputBitStream& data) override;
 
  private:
   void decodeBlock(const std::vector<double>& phases,
                    int segment_size,
-                   std::ostream& data);
+                   OutputBitStream& data);
 
   std::vector<double> phases;
   std::vector<std::complex<double>> dft;

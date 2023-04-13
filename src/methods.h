@@ -67,7 +67,7 @@ class Params {
 
 class Method {
  public:
-  virtual embedder_variant make_embedder(std::istream& input) const = 0;
+  virtual embedder_variant make_embedder(InputBitStream& input) const = 0;
   virtual extractor_variant make_extractor() const = 0;
   virtual ssize_t capacity(std::size_t samples) const = 0;
 };
@@ -76,7 +76,7 @@ class LSBMethod : public Method {
  public:
   LSBMethod(const Params& params) { bitmask = params.get_or("bitmask", 0x1); };
 
-  embedder_variant make_embedder(std::istream& input) const override;
+  embedder_variant make_embedder(InputBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -87,7 +87,7 @@ class LSBMethod : public Method {
 class PhaseMethod : public Method {
  public:
   PhaseMethod(const Params& params);
-  embedder_variant make_embedder(std::istream& input) const override;
+  embedder_variant make_embedder(InputBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -98,7 +98,7 @@ class PhaseMethod : public Method {
 class EchoHidingMethod : public Method {
  public:
   EchoHidingMethod(const Params& params);
-  embedder_variant make_embedder(std::istream& input) const override;
+  embedder_variant make_embedder(InputBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -111,7 +111,7 @@ class EchoHidingMethod : public Method {
 class ToneInsertionMethod : public Method {
  public:
   ToneInsertionMethod(const Params& params);
-  embedder_variant make_embedder(std::istream& input) const override;
+  embedder_variant make_embedder(InputBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 

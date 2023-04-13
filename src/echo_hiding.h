@@ -9,7 +9,7 @@
 
 class EchoHidingEmbedder : public Embedder<double> {
  public:
-  EchoHidingEmbedder(std::istream& data,
+  EchoHidingEmbedder(InputBitStream& data,
                      std::size_t frame_size,
                      unsigned echo_delay_zero,
                      unsigned echo_delay_one);
@@ -19,8 +19,8 @@ class EchoHidingEmbedder : public Embedder<double> {
  private:
   void update_mixer(char bit_from, char bit_to);
 
-  char bit = get_bit();
-  char next_bit = get_bit();
+  char bit = data.next_bit();
+  char next_bit = data.next_bit();
 
   std::vector<double> kernel_zero;
   std::vector<double> kernel_one;
@@ -38,7 +38,7 @@ class EchoHidingExtractor : public Extractor<double> {
                       unsigned echo_delay_zero,
                       unsigned echo_delay_one);
 
-  bool extract(std::ostream& data) override;
+  bool extract(OutputBitStream& data) override;
 
  private:
   unsigned echo_delay_zero;

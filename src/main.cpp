@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -11,13 +12,21 @@
 
 #include <sndfile.hh>
 
+#include "bitvector.h"
+#include "embedder.h"
+#include "extractor.h"
+#include "ibitstream.h"
 #include "methods.h"
+#include "obitstream.h"
 #include "processing.h"
 
 using string_map = std::unordered_map<std::string, std::string>;
 
-std::map<std::string, std::unique_ptr<Method> (*)(const Params& params)>
-    methods_map;
+#define EMBED_LENGTH 0
+#define LENGTH_BITS 16
+
+using method_creator = std::unique_ptr<Method> (*)(const Params& params);
+std::map<std::string, method_creator> methods_map;
 
 template <typename T>
 std::unique_ptr<Method> create_unique(const Params& params)
@@ -55,7 +64,7 @@ void file_embed(Embedder<T>& embedder,
 template <typename T>
 void file_extract(Extractor<T>& extractor,
                   SndfileHandle& stego,
-                  std::ostream& output)
+                  OutputBitStream& output)
 {
   std::vector<T> buffer(extractor.frame_size() * stego.channels());
   std::vector<T> left(extractor.frame_size());
@@ -87,12 +96,12 @@ void print_fileinfo(SndfileHandle& file,
                     const Params& params)
 {
   std::cout << setw(10) << left << "Filename"
-            << ": " << filename << '\n';
-  std::cout << setw(10) << left << "Channels"
-            << ": " << file.channels() << '\n';
-  std::cout << setw(10) << left << "Samplerate"
-            << ": " << file.samplerate() << '\n';
-  std::cout << setw(10) << left << "Format"
+            << ": " << filename << '\n'
+            << setw(10) << left << "Channels"
+            << ": " << file.channels() << '\n'
+            << setw(10) << left << "Samplerate"
+            << ": " << file.samplerate() << '\n'
+            << setw(10) << left << "Format"
             << ": ";
 
   SF_FORMAT_INFO format_info;
@@ -126,12 +135,12 @@ void print_fileinfo(SndfileHandle& file,
 
 void print_help()
 {
-  std::cout << "Usage: "
-            << "stego embed -m method -cf coverfile -sf stegofile [-mf "
-               "messagefile]\n";
   std::cout
-      << "       stego extract -m method -sf stegofile [-mf messagefile]\n";
-  std::cout << "       stego info <filename>\n";
+      << "Usage: "
+      << "stego embed -m method -cf coverfile -sf stegofile [-mf "
+         "messagefile]\n"
+      << "       stego extract -m method -sf stegofile [-mf messagefile]\n"
+      << "       stego info <filename>\n";
 }
 
 const std::vector<std::string> str_split(const std::string& str, char delim)
@@ -216,6 +225,37 @@ struct args parse_args(
   return res;
 }
 
+const InputBitStream process_input(std::istream& input, std::size_t capacity)
+{
+  std::vector<uint8_t> message{std::istreambuf_iterator<char>(input),
+                               std::istreambuf_iterator<char>()};
+  if (message.size() > capacity) {
+    std::cerr << "Message is longer than capacity (" << message.size()
+              << " vs. " << capacity << "), continuing with cut message!\n";
+    message.resize(capacity);
+  }
+  BitVector source;
+  if (EMBED_LENGTH) {
+    source.append((uint32_t)message.size(), LENGTH_BITS);
+  }
+  source.append(message);
+  return InputBitStream{source};
+}
+
+std::vector<uint8_t> process_output(const OutputBitStream& obs, std::size_t capacity)
+{
+  BitVector sink{obs.to_vector()};
+  [[maybe_unused]] std::size_t data_start_bit = 0;
+  if (EMBED_LENGTH) {
+    data_start_bit = LENGTH_BITS;
+    [[maybe_unused]] std::size_t msg_len = sink.read(0, LENGTH_BITS);
+  }
+
+  std::vector<uint8_t> bytes = sink.to_bytes(data_start_bit);
+  bytes.resize(capacity);
+  return bytes;
+}
+
 bool embed_command(struct args& args)
 {
   if (!args.coverfile) {
@@ -255,7 +295,11 @@ bool embed_command(struct args& args)
 
   try {
     auto method = get_method(args.method, params);
-    embedder_variant embedder = method->make_embedder(*input);
+    std::size_t capacity = method->capacity(coverfile.frames());
+
+    InputBitStream ibs = process_input(*input, capacity / 8);
+
+    embedder_variant embedder = method->make_embedder(ibs);
     std::visit([&](auto&& v) { file_embed(*v, coverfile, stegofile); },
                embedder);
   } catch (const std::invalid_argument& e) {
@@ -285,13 +329,20 @@ bool extract_command(struct args& args)
   } else {
     output.reset(&std::cout, [](...) {});
   }
+
   Params params = parse_key(args.key);
   params.insert("samplerate", std::to_string(stegofile.samplerate()));
 
   try {
     auto method = get_method(args.method, params);
+    std::size_t capacity = method->capacity(stegofile.frames());
     extractor_variant extractor = method->make_extractor();
-    std::visit([&](auto&& v) { file_extract(*v, stegofile, *output); }, extractor);
+
+    OutputBitStream obs;
+    std::visit([&](auto&& v) { file_extract(*v, stegofile, obs); }, extractor);
+
+    std::vector<uint8_t> out{process_output(obs, capacity / 8)};
+    output->write(reinterpret_cast<char*>(out.data()), out.size());
   } catch (const std::invalid_argument& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 0;
@@ -305,7 +356,7 @@ bool info_command(std::string filename, struct args& args)
   if (!file) {
     std::cerr << "Failed to open file " << filename << ": ";
     std::cerr << file.strError() << std::endl;
-    return 1;
+    return 0;
   }
 
   Params params = parse_key(args.key);

@@ -8,8 +8,8 @@
 template <class T>
 class LsbEmbedder : public Embedder<T> {
  public:
-  LsbEmbedder(std::istream& data,
-              T bitmask)
+  LsbEmbedder(InputBitStream& data,
+              [[maybe_unused]]T bitmask)
       : Embedder<T>(data)
   {
   }
@@ -19,7 +19,7 @@ class LsbEmbedder : public Embedder<T> {
     // FIXME better multichannel handling
 
     for (std::size_t i = 0; i < this->in_frame.size(); i++) {
-      char bit = this->get_bit();
+      char bit = this->data.next_bit();
 
       int sample = this->in_frame[i];
       this->out_frame[i] = (sample & (unsigned long)~1 << 1) | bit;

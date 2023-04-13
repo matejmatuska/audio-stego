@@ -5,7 +5,7 @@
 #include "phase_embedder.h"
 #include "processing.h"
 
-PhaseEmbedder::PhaseEmbedder(std::istream& data, std::size_t frame_size)
+PhaseEmbedder::PhaseEmbedder(InputBitStream& data, std::size_t frame_size)
     : Embedder(data, frame_size),
       amps_curr(in_frame.size()),
       phases_prev(in_frame.size()),
@@ -46,7 +46,7 @@ void PhaseEmbedder::encodeFirstBlock(vector<double>& phases)
   std::vector<double> encoded;
   size_t i = 0;
   char bit = -1;
-  while ((bit = get_bit()) >= 0 && i < mid - 1) {
+  while ((bit = data.next_bit()) >= 0 && i < mid - 1) {
     encoded.push_back(bit ? (M_PI_2) : -(M_PI_2));
     i++;
   }

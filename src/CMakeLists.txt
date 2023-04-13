@@ -11,6 +11,9 @@ add_executable(${PROJECT_NAME}
     processing.cpp
     tone_insertion.cpp
     methods.cpp
+    bitvector.cpp
+    ibitstream.cpp
+    obitstream.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE -lsndfile -lfftw3)
