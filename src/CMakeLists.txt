@@ -2,6 +2,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(${PROJECT_NAME}
     main.cpp
+    args.cpp
     autocorrelation.cpp
     conv.cpp
     echo_hiding.cpp
