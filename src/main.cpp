@@ -49,11 +49,14 @@ void file_embed(Embedder<T>& embedder,
   std::vector<T> right(embedder.frame_size());
 
   sf_count_t read = 0;
+  bool done = false;
   while ((read = cover.readf(buffer.data(), embedder.frame_size())) > 0) {
     // TODO multichannel
-    demultiplex(buffer, embedder.input(), 0, stego.channels());
-    embedder.embed();
-    multiplex(embedder.output(), buffer, 0, stego.channels());
+    if (!done) {
+      demultiplex(buffer, embedder.input(), 0, stego.channels());
+      done = embedder.embed();
+      multiplex(embedder.output(), buffer, 0, stego.channels());
+    }
     stego.writef(buffer.data(), read);
   }
 }
@@ -71,11 +74,13 @@ void file_extract(Extractor<T>& extractor,
   while ((read = stego.readf(buffer.data(), extractor.frame_size())) > 0) {
     // TODO multichannel
     demultiplex(buffer, extractor.input(), 0, stego.channels());
-
-    bool cont = extractor.extract(output);
-    if (!cont) {
+    if (output.eof()) {
       break;
     }
+
+    bool should_continue = extractor.extract(output);
+    if (!should_continue)
+      break;
   }
 }
 
@@ -140,10 +145,12 @@ void print_help()
       << "       stego info <filename>\n";
 }
 
-const InputBitStream process_input(std::istream& input, std::size_t capacity)
+const VectorInputBitStream process_input(std::istream& input,
+                                         std::size_t capacity)
 {
   std::vector<uint8_t> message{std::istreambuf_iterator<char>(input),
                                std::istreambuf_iterator<char>()};
+
   if (message.size() > capacity) {
     std::cerr << "Message is longer than capacity (" << message.size()
               << " vs. " << capacity << "), continuing with cut message!\n";
@@ -154,13 +161,15 @@ const InputBitStream process_input(std::istream& input, std::size_t capacity)
     source.append((uint32_t)message.size(), LENGTH_BITS);
   }
   source.append(message);
-  return InputBitStream{source};
+  return VectorInputBitStream{source};
 }
 
-std::vector<uint8_t> process_output(const OutputBitStream& obs, std::size_t capacity)
+std::vector<uint8_t> process_output(const VectorOutputBitStream& obs,
+                                    std::size_t capacity)
 {
   BitVector sink{obs.to_vector()};
   [[maybe_unused]] std::size_t data_start_bit = 0;
+
   if (EMBED_LENGTH) {
     data_start_bit = LENGTH_BITS;
     [[maybe_unused]] std::size_t msg_len = sink.read(0, LENGTH_BITS);
@@ -207,7 +216,7 @@ bool embed_command(struct args& args)
     auto method = get_method(args.method.value(), params);
     std::size_t capacity = method->capacity(coverfile.frames());
 
-    InputBitStream ibs = process_input(*input, capacity / 8);
+    VectorInputBitStream ibs = process_input(*input, capacity / 8);
 
     embedder_variant embedder = method->make_embedder(ibs);
     std::visit([&](auto&& v) { file_embed(*v, coverfile, stegofile); },
@@ -248,7 +257,7 @@ bool extract_command(struct args& args)
     std::size_t capacity = method->capacity(stegofile.frames());
     extractor_variant extractor = method->make_extractor();
 
-    OutputBitStream obs;
+    VectorOutputBitStream obs;
     std::visit([&](auto&& v) { file_extract(*v, stegofile, obs); }, extractor);
 
     std::vector<uint8_t> out{process_output(obs, capacity / 8)};

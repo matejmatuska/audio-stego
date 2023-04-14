@@ -1,7 +1,26 @@
 #include "obitstream.h"
 
-OutputBitStream::OutputBitStream() : sink() {}
+bool VectorOutputBitStream::eof()
+{
+  return false;
+}
 
-OutputBitStream::OutputBitStream(BitVector& sink) : sink(sink) {}
+VectorOutputBitStream::VectorOutputBitStream() : sink() {}
 
-BitVector OutputBitStream::to_vector() const { return sink; }
+VectorOutputBitStream::VectorOutputBitStream(BitVector& sink) : sink(sink) {}
+
+BitVector VectorOutputBitStream::to_vector() const
+{
+  return sink;
+}
+
+LimitedOutputBitStream::LimitedOutputBitStream(OutputBitStream& in,
+                                               std::size_t limit)
+    : OutputBitStream(), in(in), limit(limit)
+{
+}
+
+bool LimitedOutputBitStream::eof()
+{
+  return count >= limit;
+}

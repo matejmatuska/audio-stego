@@ -1,26 +1,57 @@
 #ifndef IBITSTREAM_H
 #define IBITSTREAM_H
 
+#include <cstdio>
+
 #include "bitvector.h"
 
 class InputBitStream {
  public:
-  InputBitStream(BitVector& source);
+  inline virtual int next_bit() = 0;
 
-  InputBitStream(const InputBitStream& other);
+  virtual bool eof() = 0;
+};
 
-  inline int next_bit()
+class VectorInputBitStream : public InputBitStream {
+ public:
+  VectorInputBitStream(const BitVector& source);
+
+  VectorInputBitStream(const VectorInputBitStream& other);
+
+  inline virtual int next_bit() override
   {
     if (index < source.size()) {
       return source[index++];
     }
-    // TODO
     return EOF;
   }
 
+  virtual bool eof() override;
+
  private:
-  BitVector source;
+  const BitVector source;
   std::size_t index = 0;
+};
+
+class LimitedInputBitstream : public InputBitStream {
+ public:
+  LimitedInputBitstream(InputBitStream& in, std::size_t limit);
+
+  inline virtual int next_bit() override
+  {
+    if (eof()) {
+      return EOF;
+    }
+    count++;
+    return in.next_bit();
+  }
+
+  virtual bool eof() override;
+
+ private:
+  InputBitStream& in;
+  std::size_t limit;
+  std::size_t count = 0;
 };
 
 #endif  // IBITSTREAM_H

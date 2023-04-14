@@ -15,7 +15,7 @@ class ToneInsertionEmbedder : public Embedder<double> {
                         double freq_zero,
                         double freq_one);
 
-  void embed() override;
+  bool embed() override;
 
  private:
   std::vector<std::complex<double>> dft;

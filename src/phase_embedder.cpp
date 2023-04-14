@@ -45,8 +45,8 @@ void PhaseEmbedder::encodeFirstBlock(vector<double>& phases)
 
   std::vector<double> encoded;
   size_t i = 0;
-  char bit = -1;
-  while ((bit = data.next_bit()) >= 0 && i < mid - 1) {
+  char bit;
+  while ((bit = data.next_bit()) != EOF && i < mid - 1) {
     encoded.push_back(bit ? (M_PI_2) : -(M_PI_2));
     i++;
   }
@@ -63,7 +63,7 @@ void PhaseEmbedder::encodeFirstBlock(vector<double>& phases)
   }
 }
 
-void PhaseEmbedder::embed()
+bool PhaseEmbedder::embed()
 {
   int read = in_frame.size();
 
@@ -89,4 +89,7 @@ void PhaseEmbedder::embed()
   phases_prev = backup;  // TODO move is enough
 
   frame++;
+
+  // all blocks need to be modified (phase shifted)
+  return false;
 }

@@ -20,7 +20,10 @@ class Embedder {
 
   Embedder(InputBitStream& data) : Embedder(data, DEF_FRAME_SIZE) {};
 
-  virtual void embed() = 0;
+  /**
+   * @return true if done embedding else false
+   */
+  [[nodiscard]] virtual bool embed() = 0;
 
   const std::vector<T>& input() const { return in_frame; }
   const std::vector<T>& output() const { return out_frame; }

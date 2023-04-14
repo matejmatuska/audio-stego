@@ -14,7 +14,7 @@ bool PhaseExtractor::extract(OutputBitStream& data)
   fft.exec();
   angle(dft, phases, in_frame.size());
   decodeBlock(phases, in_frame.size(), data);
-  return false;
+  return false; // information is only in the first frame
 }
 
 void PhaseExtractor::decodeBlock(const std::vector<double>& phases,

@@ -14,16 +14,18 @@ class LsbEmbedder : public Embedder<T> {
   {
   }
 
-  void embed() override
+  bool embed() override
   {
-    // FIXME better multichannel handling
-
     for (std::size_t i = 0; i < this->in_frame.size(); i++) {
       char bit = this->data.next_bit();
+      if (bit == EOF) {
+        return true;
+      }
 
       int sample = this->in_frame[i];
       this->out_frame[i] = (sample & (unsigned long)~1 << 1) | bit;
     }
+    return false;
   }
 
  private:

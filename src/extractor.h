@@ -14,10 +14,10 @@ class Extractor {
   Extractor(std::size_t frame_size)
       : _frame_size(frame_size), in_frame(frame_size){};
 
-  Extractor() : Extractor(DEF_FRAME_SIZE) {};
+  Extractor() : Extractor(DEF_FRAME_SIZE){};
 
   /**
-   * @return True if should continue else false
+   * @return true if should continue else false
    */
   virtual bool extract(OutputBitStream& output) = 0;
 

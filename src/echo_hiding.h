@@ -14,13 +14,12 @@ class EchoHidingEmbedder : public Embedder<double> {
                      unsigned echo_delay_zero,
                      unsigned echo_delay_one);
 
-  void embed() override;
+  bool embed() override;
 
  private:
   void update_mixer(char bit_from, char bit_to);
 
-  char bit = data.next_bit();
-  char next_bit = data.next_bit();
+  int next_bit;
 
   std::vector<double> kernel_zero;
   std::vector<double> kernel_one;

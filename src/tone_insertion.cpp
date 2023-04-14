@@ -1,6 +1,6 @@
 #include <cmath>
 #include <complex>
-#include <istream>
+#include <cstdio>
 #include <vector>
 
 #include "processing.h"
@@ -26,7 +26,7 @@ ToneInsertionEmbedder::ToneInsertionEmbedder(InputBitStream& data,
 {
 }
 
-void ToneInsertionEmbedder::embed()
+bool ToneInsertionEmbedder::embed()
 {
   double avg_pwr = avg_power(in_frame);
 
@@ -41,7 +41,10 @@ void ToneInsertionEmbedder::embed()
   double magnitude = sqrt(pwr);
   double magnitude_other = sqrt(pwr_other);
 
-  char bit = data.next_bit();
+  int bit = data.next_bit();
+  if (bit == EOF) {
+    return true;
+  }
   if (bit) {
     dft[bin_f1] = std::polar(magnitude, phase_f1);
     dft[bin_f0] = std::polar(magnitude_other, phase_f0);
@@ -51,6 +54,7 @@ void ToneInsertionEmbedder::embed()
   }
 
   ifft.exec();
+  return false;
 }
 
 ToneInsertionExtractor::ToneInsertionExtractor(std::size_t frame_size,
@@ -77,6 +81,5 @@ bool ToneInsertionExtractor::extract(OutputBitStream& data)
 
   char bit = (avg_pwr / p0) > (avg_pwr / p1);
   data.output_bit(bit);
-
   return true;
 }

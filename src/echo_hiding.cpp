@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <complex>
-#include <iostream>
 #include <vector>
 
 #include "echo_hiding.h"
@@ -22,11 +21,12 @@ EchoHidingEmbedder::EchoHidingEmbedder(InputBitStream& data,
                                        unsigned echo_delay_zero,
                                        unsigned echo_delay_one)
     : Embedder<double>::Embedder(data, frame_size),
+      next_bit(data.next_bit()),
       kernel_zero(KERNEL_LEN, 0),
       kernel_one(KERNEL_LEN, 0),
       echo_zero(in_frame.size() + KERNEL_LEN - 1, 0),
       echo_one(in_frame.size() + KERNEL_LEN - 1, 0),
-      mixer(2 * in_frame.size(), bit),
+      mixer(2 * in_frame.size(), next_bit),
       conv_zero(in_frame, kernel_zero, echo_zero),
       conv_one(in_frame, kernel_one, echo_one)
 {
@@ -62,14 +62,21 @@ void EchoHidingEmbedder::update_mixer(char bit_from, char bit_to)
   std::fill(mixer.begin() + end, mixer.end(), bit_to);
 }
 
-void EchoHidingEmbedder::embed()
+bool EchoHidingEmbedder::embed()
 {
+  int bit = next_bit;
+  if (bit == EOF) {
+    return true;
+  }
+  next_bit = data.next_bit();
+
   // create echo
   conv_one.exec();
   conv_zero.exec();
 
   if (USE_SMOOTHING) {
-    update_mixer(bit, next_bit);
+    // if next_bit is EOF use 0 as default
+    update_mixer(bit, next_bit == EOF ? 0 : next_bit);
 
     // add the echo to the signal
     for (std::size_t i = 0; i < in_frame.size(); i++) {
@@ -84,8 +91,8 @@ void EchoHidingEmbedder::embed()
       out_frame[i] = in_frame[i] + echo;
     }
   }
-  bit = next_bit;
-  next_bit = data.next_bit();
+
+  return next_bit == EOF;
 }
 
 EchoHidingExtractor::EchoHidingExtractor(std::size_t frame_size,
