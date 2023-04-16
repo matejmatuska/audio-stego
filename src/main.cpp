@@ -12,6 +12,11 @@
 
 #include "args.h"
 #include "bitvector.h"
+
+#ifdef HAS_ZLIB
+#include "compression/zlib_compress.h"
+#endif
+
 #include "embedder.h"
 #include "extractor.h"
 #include "ibitstream.h"
@@ -21,6 +26,10 @@
 
 #define EMBED_LENGTH 0
 #define LENGTH_BITS 16
+
+#ifdef HAS_ZLIB
+#define USE_COMPRESSION 0
+#endif
 
 using method_creator = std::unique_ptr<Method> (*)(const Params& params);
 std::map<std::string, method_creator> methods_map;
@@ -156,11 +165,24 @@ const VectorInputBitStream process_input(std::istream& input,
               << " vs. " << capacity << "), continuing with cut message!\n";
     message.resize(capacity);
   }
+  std::vector<uint8_t> dest;
+
+#ifdef HAS_ZLIB
+  if (USE_COMPRESSION) {
+    ZlibCompressor compressor;
+    compressor.compress(message, dest);
+  } else {
+    dest = message;
+  }
+#else
+  dest = message;
+#endif
+
   BitVector source;
   if (EMBED_LENGTH) {
     source.append((uint32_t)message.size(), LENGTH_BITS);
   }
-  source.append(message);
+  source.append(dest);
   return VectorInputBitStream{source};
 }
 
@@ -175,6 +197,15 @@ std::vector<uint8_t> process_output(const VectorOutputBitStream& obs,
     [[maybe_unused]] std::size_t msg_len = sink.read(0, LENGTH_BITS);
   }
 
+#ifdef HAS_ZLIB
+  if (USE_COMPRESSION) {
+    std::vector<uint8_t> out;
+    ZlibDecompressor decompressor;
+    std::vector<uint8_t> data = sink.to_bytes(data_start_bit);
+    decompressor.decompress(data, out);
+    return out;
+  }
+#endif
   std::vector<uint8_t> bytes = sink.to_bytes(data_start_bit);
   bytes.resize(capacity);
   return bytes;
