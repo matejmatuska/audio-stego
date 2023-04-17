@@ -1,18 +1,20 @@
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <complex>
 #include <iostream>
 #include <vector>
 
 #include "echo_hiding_hc.h"
 #include "processing.h"
+#include "util.h"
 
 #define ECHO_AMP_POS 0.25
 #define ECHO_AMP_NEG -ECHO_AMP_POS
 
-#define ECHO_DISTANCE 100
+#define ECHO_DISTANCE 80
 // probably the best around ECHO_DISTANCE / 2
-#define NEG_ECHO_OFFSET 50
+#define NEG_ECHO_OFFSET 40
 
 #define KERNEL_LEN 450
 
@@ -47,15 +49,16 @@ static void make_kernel(std::vector<double>& kernel,
   kernel[delay - 1] = ECHO_AMP_NEG;
 }
 
-EchoHidingHCEmbedder::EchoHidingHCEmbedder(InputBitStream& data)
-    : Embedder<double>::Embedder(data),
+EchoHidingHCEmbedder::EchoHidingHCEmbedder(InputBitStream& data,
+                                           std::size_t frame_size)
+    : Embedder<double>::Embedder(data, frame_size),
       kernel(KERNEL_LEN, 0),
-      echo(in_frame.size() + KERNEL_LEN - 1, 0),
+      echo(pow(2, next_pow2(in_frame.size() + KERNEL_LEN - 1)), 0),
       next_kernel(KERNEL_LEN, 0),
-      next_echo(in_frame.size() + KERNEL_LEN - 1, 0),
+      next_echo(pow(2, next_pow2(in_frame.size() + KERNEL_LEN - 1)), 0),
       prev_kernel(KERNEL_LEN, 0),
-      prev_echo(in_frame.size() + KERNEL_LEN - 1, 0),
-      mixer(in_frame.size(), 0),
+      prev_echo(pow(2, next_pow2(in_frame.size() + KERNEL_LEN - 1)), 0),
+      mixer(frame_size, 0),
       conv(in_frame, kernel, echo),
       prev_conv(in_frame, prev_kernel, prev_echo),
       next_conv(in_frame, next_kernel, next_echo)
@@ -144,40 +147,28 @@ bool EchoHidingHCEmbedder::embed()
       out_frame[i] = in_frame[i] + echo[i];
     }
   }
-  return false; // TODO
+  return false;  // TODO
 }
 
 EchoHidingHCExtractor::EchoHidingHCExtractor()
     : Extractor<double>(),
-      // TODO optimize these sizes for FFT
-      autocorrelation(2 * in_frame.size() - 1),
-      autocorrelate(in_frame, autocorrelation),
-      dft(2 * in_frame.size() - 1),
-      fft(2 * in_frame.size() - 1, autocorrelation, dft),
-      ifft(2 * in_frame.size() - 1, dft, autocorrelation)
+      // next power of two for faster FFT
+      autocorrelation(pow(2, next_pow2(2 * in_frame.size() - 1))),
+      autocorrelate(in_frame, autocorrelation)
 {
 }
 
 bool EchoHidingHCExtractor::extract(OutputBitStream& data)
 {
-  // TODO the autocorrelation + cepstrum could be computed at once
-  // in the same FFT
   autocorrelate.exec();
-
-  // calculate autocepstrum (cepstrum of autocorrelation)
-  fft.exec();
-  for (std::size_t i = 0; i < dft.size(); i++) {
-    const auto abs = std::complex<double>(std::abs(dft[i]), 0);
-    dft[i] = std::log(abs);
-  }
-  ifft.exec();
 
   // extract the first 2 bits from positive echo delay
   double pos_coefs[N_ECHOS];
   for (int i = 1; i <= N_ECHOS; i++) {
     pos_coefs[i - 1] = autocorrelation[i * ECHO_DISTANCE - 1];
   }
-  unsigned max_coef = distance(pos_coefs, max_element(pos_coefs, pos_coefs + N_ECHOS));
+  unsigned max_coef =
+      distance(pos_coefs, max_element(pos_coefs, pos_coefs + N_ECHOS));
   data.output_bit(max_coef >> 1 & 0x1);
   data.output_bit(max_coef & 0x1);
 
@@ -186,7 +177,8 @@ bool EchoHidingHCExtractor::extract(OutputBitStream& data)
   for (int i = 1; i <= N_ECHOS; i++) {
     neg_coefs[i - 1] = autocorrelation[NEG_ECHO_OFFSET + i * ECHO_DISTANCE - 1];
   }
-  unsigned min_coef = distance(neg_coefs, min_element(neg_coefs, neg_coefs + N_ECHOS));
+  unsigned min_coef =
+      distance(neg_coefs, min_element(neg_coefs, neg_coefs + N_ECHOS));
   data.output_bit(min_coef >> 1 & 0x1);
   data.output_bit(min_coef & 0x1);
 

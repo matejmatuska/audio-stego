@@ -97,7 +97,7 @@ EchoHidingHCMethod::EchoHidingHCMethod(const Params& params)
 
 embedder_variant EchoHidingHCMethod::make_embedder(InputBitStream& input) const
 {
-  return make_unique<EchoHidingHCEmbedder>(input);
+  return make_unique<EchoHidingHCEmbedder>(input, frame_size);
 }
 
 extractor_variant EchoHidingHCMethod::make_extractor() const

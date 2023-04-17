@@ -1,7 +1,7 @@
 #ifndef ECHO_HIDING_HC_H
 #define ECHO_HIDING_HC_H
 
-#include "autocorrelation.h"
+#include "autocepstrum.h"
 #include "conv.h"
 #include "embedder.h"
 #include "extractor.h"
@@ -9,7 +9,7 @@
 
 class EchoHidingHCEmbedder : public Embedder<double> {
  public:
-  EchoHidingHCEmbedder(InputBitStream& data);
+  EchoHidingHCEmbedder(InputBitStream& data, std::size_t frame_size);
 
   bool embed() override;
 
@@ -40,11 +40,7 @@ class EchoHidingHCExtractor : public Extractor<double> {
 
  private:
   std::vector<double> autocorrelation;
-  Autocorrelation autocorrelate;
-
-  std::vector<std::complex<double>> dft;
-  FFT fft;
-  IFFT ifft;
+  Autocepstrum autocorrelate;
 };
 
 #endif

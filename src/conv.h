@@ -14,22 +14,21 @@ class Conv {
   void exec();
 
  private:
-  std::vector<double>* x;
-  std::vector<double>* kernel;
-  std::vector<double>* out;
+  std::vector<double>& x;
+  std::vector<double>& kernel;
+  std::vector<double>& out;
 
-  size_t padded_size;
+  std::size_t conv_size; // the actual convolution size
+  std::size_t padded_size;
   std::vector<double> padded_x;
   std::vector<double> padded_kernel;
 
-  size_t olap_len;
+  std::size_t olap_len;
   // overlap-add history
   std::vector<double> olap;
 
-  // TODO some of these could be reused
   std::vector<std::complex<double>> dft_x;
   std::vector<std::complex<double>> dft_kernel;
-  std::vector<std::complex<double>> dft_conv;
 
   FFT fft_x;
   FFT fft_kernel;

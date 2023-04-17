@@ -1,7 +1,7 @@
 #ifndef ECHO_HIDING_H
 #define ECHO_HIDING_H
 
-#include "autocorrelation.h"
+#include "autocepstrum.h"
 #include "conv.h"
 #include "embedder.h"
 #include "extractor.h"
@@ -44,11 +44,7 @@ class EchoHidingExtractor : public Extractor<double> {
   unsigned echo_delay_one;
 
   std::vector<double> autocorrelation;
-  Autocorrelation autocorrelate;
-
-  std::vector<std::complex<double>> dft;
-  FFT fft;
-  IFFT ifft;
+  Autocepstrum autocorrelate;
 };
 
 #endif

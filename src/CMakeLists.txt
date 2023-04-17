@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(${PROJECT_NAME}
     main.cpp
     args.cpp
-    autocorrelation.cpp
+    autocepstrum.cpp
     conv.cpp
     echo_hiding.cpp
     fft.cpp
@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME}
     ibitstream.cpp
     obitstream.cpp
     echo_hiding_hc.cpp
+    util.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE -lsndfile -lfftw3)

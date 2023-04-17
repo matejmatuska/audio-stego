@@ -1,20 +1,17 @@
 #include <algorithm>
+#include <cmath>
 #include <complex>
 #include <vector>
 
 #include "echo_hiding.h"
 #include "processing.h"
+#include "util.h"
 
-#define ECHO_DELAY_ZERO 250
-#define ECHO_DELAY_ONE 300
-
-#define ECHO_AMP_ZERO 0.6
-#define ECHO_AMP_ONE 0.6
-
-#define KERNEL_LEN 300
+#define ECHO_AMP_ZERO 0.4
+#define ECHO_AMP_ONE 0.4
 
 #define USE_SMOOTHING 1
-#define SMOOTHING_PCT 0.95
+#define SMOOTHING_PCT 0.95 // TODO
 
 EchoHidingEmbedder::EchoHidingEmbedder(InputBitStream& data,
                                        std::size_t frame_size,
@@ -22,10 +19,10 @@ EchoHidingEmbedder::EchoHidingEmbedder(InputBitStream& data,
                                        unsigned echo_delay_one)
     : Embedder<double>::Embedder(data, frame_size),
       next_bit(data.next_bit()),
-      kernel_zero(KERNEL_LEN, 0),
-      kernel_one(KERNEL_LEN, 0),
-      echo_zero(in_frame.size() + KERNEL_LEN - 1, 0),
-      echo_one(in_frame.size() + KERNEL_LEN - 1, 0),
+      kernel_zero(echo_delay_zero, 0),
+      kernel_one(echo_delay_one, 0),
+      echo_zero(pow(2,next_pow2(in_frame.size() + echo_delay_zero - 1)), 0),
+      echo_one(pow(2,next_pow2(in_frame.size() +  echo_delay_one - 1)), 0),
       mixer(2 * in_frame.size(), next_bit),
       conv_zero(in_frame, kernel_zero, echo_zero),
       conv_one(in_frame, kernel_one, echo_one)
@@ -80,8 +77,7 @@ bool EchoHidingEmbedder::embed()
 
     // add the echo to the signal
     for (std::size_t i = 0; i < in_frame.size(); i++) {
-      out_frame[i] =
-          in_frame[i] + echo_one[i] * mixer[i] + echo_zero[i] * (1 - mixer[i]);
+      out_frame[i] = in_frame[i] + echo_one[i] * mixer[i] + echo_zero[i] * (1 - mixer[i]);
     }
     // shift the mixer
     std::move(mixer.begin() + (mixer.size() / 2), mixer.end(), mixer.begin());
@@ -101,28 +97,14 @@ EchoHidingExtractor::EchoHidingExtractor(std::size_t frame_size,
     : Extractor<double>(frame_size),
       echo_delay_zero(echo_delay_zero),
       echo_delay_one(echo_delay_one),
-      // TODO optimize these sizes for FFT
-      autocorrelation(2 * in_frame.size() - 1),
-      autocorrelate(in_frame, autocorrelation),
-      dft(2 * in_frame.size() - 1),
-      fft(2 * in_frame.size() - 1, autocorrelation, dft),
-      ifft(2 * in_frame.size() - 1, dft, autocorrelation)
+      autocorrelation(pow(2, next_pow2(2 * in_frame.size() - 1))),
+      autocorrelate(in_frame, autocorrelation)
 {
 }
 
 bool EchoHidingExtractor::extract(OutputBitStream& data)
 {
-  // TODO the autocorrelation + cepstrum could be computed at once
-  // in the same FFT
   autocorrelate.exec();
-
-  // calculate autocepstrum (cepstrum of autocorrelation)
-  fft.exec();
-  for (std::size_t i = 0; i < dft.size(); i++) {
-    const auto abs = std::complex<double>(std::abs(dft[i]), 0);
-    dft[i] = std::log(abs);
-  }
-  ifft.exec();
 
   double c0 = autocorrelation[echo_delay_zero - 1];
   double c1 = autocorrelation[echo_delay_one - 1];

@@ -6,7 +6,7 @@
 
 using namespace std;
 
-class Autocorrelation {
+class Autocepstrum {
  public:
   /**
    * Constructs a new Autocorrelation object
@@ -14,7 +14,7 @@ class Autocorrelation {
    * @param in The signal to autocorrelate
    * @param out The output vector, size must be at least 2 * in.size() - 1
    */
-  Autocorrelation(vector<double>& in, vector<double>& out);
+  Autocepstrum(vector<double>& in, vector<double>& out);
 
   void exec();
 
