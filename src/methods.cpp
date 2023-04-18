@@ -1,11 +1,14 @@
-#include "methods.h"
 #include <memory>
+#include <stdexcept>
+
 #include "echo_hiding.h"
 #include "echo_hiding_hc.h"
 #include "lsb_embedder.h"
 #include "lsb_extractor.h"
+#include "methods.h"
 #include "phase_embedder.h"
 #include "phase_extractor.h"
+#include "processing.h"
 #include "tone_insertion.h"
 
 embedder_variant LSBMethod::make_embedder(InputBitStream& input) const
@@ -26,20 +29,31 @@ ssize_t LSBMethod::capacity(std::size_t samples) const
 PhaseMethod::PhaseMethod(const Params& params)
 {
   frame_size = params.get_or("framesize", 4096);
+  unsigned int samplerate = params.get_ul("samplerate");
+
+  bin_from = freq_to_bin(1000, samplerate, frame_size);
+  bin_to = freq_to_bin(8000, samplerate, frame_size);
+
+  if (!(bin_from < bin_to)) {
+    throw std::invalid_argument(
+        "\"from\" frequency must be lower than \"to\" frequency");
+  }
+
 };
+
 embedder_variant PhaseMethod::make_embedder(InputBitStream& input) const
 {
-  return make_unique<PhaseEmbedder>(input, frame_size);
+  return make_unique<PhaseEmbedder>(input, frame_size, bin_from, bin_to);
 }
 
 extractor_variant PhaseMethod::make_extractor() const
 {
-  return make_unique<PhaseExtractor>(frame_size);
+  return make_unique<PhaseExtractor>(frame_size, bin_from, bin_to);
 }
 
 ssize_t PhaseMethod::capacity([[maybe_unused]] std::size_t samples) const
 {
-  return frame_size;
+  return bin_to - bin_from;
 }
 
 EchoHidingMethod::EchoHidingMethod(const Params& params)

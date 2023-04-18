@@ -71,7 +71,7 @@ void polar_to_cartesian(std::vector<std::complex<double>>& dft,
  * @param fs The sampling frequency
  * @param N Number of points in the DFT
  */
-int freq_to_bin(double freq, double fs, unsigned N);
+unsigned freq_to_bin(double freq, double fs, unsigned N);
 
 /**
  * Calculate the average power of real signal

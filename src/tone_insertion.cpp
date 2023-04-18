@@ -6,9 +6,6 @@
 #include "processing.h"
 #include "tone_insertion.h"
 
-#define FREQ_ZERO 1875  // Hz
-#define FREQ_ONE 2625   // Hz
-
 #define EMBEDDING_PWR_PCT 0.25
 #define OTHER_PWR_PCT 0.001
 

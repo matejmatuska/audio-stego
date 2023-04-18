@@ -9,17 +9,21 @@
 
 class PhaseEmbedder : public Embedder<double> {
  public:
-  PhaseEmbedder(InputBitStream& data, std::size_t frame_size);
+  PhaseEmbedder(InputBitStream& data,
+                std::size_t frame_size,
+                std::size_t bin_from,
+                std::size_t bin_to);
 
   bool embed() override;
 
  protected:
   std::size_t frame = 0;
 
-  void encodeFirstBlock(std::vector<double>& phases);
+  std::size_t encodeFirstBlock(std::vector<double>& phases);
 
  private:
-  void embed(std::string& data);
+  std::size_t bin_from;
+  std::size_t bin_to;
 
   std::vector<double> amps_curr;
   std::vector<double> phases_prev;
@@ -31,6 +35,8 @@ class PhaseEmbedder : public Embedder<double> {
   std::vector<std::complex<double>> dft;
   FFT fft;
   IFFT ifft;
+
+  std::size_t encoded;
 };
 
 #endif

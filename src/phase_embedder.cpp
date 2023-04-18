@@ -5,8 +5,16 @@
 #include "phase_embedder.h"
 #include "processing.h"
 
-PhaseEmbedder::PhaseEmbedder(InputBitStream& data, std::size_t frame_size)
+#define MODULE 12
+#define STEP (M_PI / MODULE)
+
+PhaseEmbedder::PhaseEmbedder(InputBitStream& data,
+                             std::size_t frame_size,
+                             std::size_t bin_from,
+                             std::size_t bin_to)
     : Embedder(data, frame_size),
+      bin_from(bin_from),
+      bin_to(bin_to),
       amps_curr(in_frame.size()),
       phases_prev(in_frame.size()),
       phases_curr(in_frame.size()),
@@ -31,62 +39,87 @@ static void diff(std::vector<double>& a,
 }
 
 /**
- * Encodes data into the phases of signal
- *
- * Data is mirrorred around phases.size() / 2 - 1.
+ * Encodes data into the initial phases of signal
  *
  * @param phases The phases to embed into
- * @param data Null-terminated C string
- * @param count Number of bytes to embed
+ * @return The number of phases modified beginning at START
  */
-void PhaseEmbedder::encodeFirstBlock(vector<double>& phases)
+std::size_t PhaseEmbedder::encodeFirstBlock(vector<double>& phases)
 {
-  size_t mid = phases.size() / 2;
+  std::size_t i = 0;
 
+#if 0
   std::vector<double> encoded;
-  size_t i = 0;
   char bit;
-  while ((bit = data.next_bit()) != EOF && i < mid - 1) {
+  while ((bit = data.next_bit()) != EOF && i < (fft_len - 1)) {
     encoded.push_back(bit ? (M_PI_2) : -(M_PI_2));
     i++;
   }
 
-  int j = 0;
-  for (size_t i = mid - 1; i >= mid - encoded.size(); i--) {
+  unsigned j = 0;
+  for (i = fft_len - 1; i >= fft_len - encoded.size(); i--) {
     phases[i] = encoded[j++];
   }
+#else
+  for (i = bin_from; i < bin_to; i++) {
+    int bit = data.next_bit();
+    if (bit == EOF)
+      break;
 
-  // phase should be symmetric around [0,0]
-  j = 0;
-  for (size_t i = mid; i < mid + encoded.size(); i++) {
-    phases[i] = -encoded[j++];
+    // modulate the phase
+    if (phases[i] > 0) {
+      if (bit)
+        phases[i] = std::ceil(phases[i] / STEP) * STEP;
+      else
+        phases[i] = std::floor(phases[i] / STEP) * STEP + (STEP / 2);
+    } else if (phases[i] < 0) {
+      if (bit)
+        phases[i] = std::floor(phases[i] / STEP) * STEP;
+      else
+        phases[i] = std::ceil(phases[i] / STEP) * STEP - (STEP / 2);
+    }
+
+    // 0 is not used -> set to the nearest
+    if (phases[i] == 0) {
+      if (bit) {
+        // the last point before 0
+        phases[i] = (2 * MODULE - 1) * (STEP / 2);
+      } else {
+        // the first point after 0
+        phases[i] = STEP / 2;
+      }
+    }
   }
+#endif
+
+  return i - bin_from;
 }
 
 bool PhaseEmbedder::embed()
 {
-  int read = in_frame.size();
-
   fft.exec();
-  amplitude(dft, amps_curr, read);
-  angle(dft, phases_curr, read);
-
-  // backup the unmodified phase
-  backup = phases_curr;
+  amplitude(dft, amps_curr, frame_size());
+  angle(dft, phases_curr, frame_size());
 
   if (frame == 0) {
-    encodeFirstBlock(phases_curr);
+    backup = phases_curr;
+    // save the number of actually modified phases - only those actually need to
+    // be shifted
+    encoded = encodeFirstBlock(phases_curr);
+    // save for the next frame
+    std::copy(phases_curr.begin(), phases_curr.end(), phases_prev.begin());
   } else {
-    diff(phases_curr, phases_prev, diff_curr);
-    for (int i = 0; i < read; i++) {
+    diff(phases_curr, backup, diff_curr);
+    backup = phases_curr;
+    for (std::size_t i = bin_from; i < encoded; i += 1) {
       phases_curr[i] = phases_prev[i] + diff_curr[i];
     }
+    //  save for the next frame
+    std::copy(phases_curr.begin(), phases_curr.end(), phases_prev.begin());
   }
-  polar_to_cartesian(dft, amps_curr, phases_curr, read);
-  ifft.exec();
 
-  // save for the next frame
-  phases_prev = backup;  // TODO move is enough
+  polar_to_cartesian(dft, amps_curr, phases_curr, frame_size());
+  ifft.exec();
 
   frame++;
 

@@ -92,6 +92,8 @@ class PhaseMethod : public Method {
   virtual ssize_t capacity(std::size_t samples) const override;
 
  protected:
+  int bin_from;
+  int bin_to;
   std::size_t frame_size;
 };
 
