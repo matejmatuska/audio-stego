@@ -1,0 +1,138 @@
+#!/bin/bash
+
+# Script for testing various properties of different steganography methods
+#
+# Test structure:
+# INPUT_DIR/
+#   cover1
+#   cover2
+#   ...
+#   coverN
+#
+# OUTPUT_DIR/
+#   INPUT_DIR/
+#      covern.output/
+#          lsb/
+#              message.txt
+#              ber.txt
+#              ...
+#          phase/
+#              message.txt
+#              ber.txt
+#              ...
+#          echo/
+#          tone/
+BIN=$1
+COVERS_DIR=$2
+OUTPUT_DIR=$3
+MSG_FILE=$4
+
+_METHODS=${METHODS:-"lsb phase echo tone echo-hc"}
+
+test_method() {
+    local method=$1
+    local cover=$2
+    local test_dir=$3
+    local stego="$test_dir/out.wav"
+
+    local out;
+
+    if ! "$BIN" embed -m "$method" -cf "$cover" -sf "$stego" < "$MSG_FILE"  2> "$test_dir/stderr.txt";
+    then
+        echo 1>&2 "Failed to embed to cover: $cover"
+        return 1
+    fi
+
+    out="$method;$(./snr -db "$cover" "$stego")"
+
+    mkdir -p "$test_dir/extract"
+    if ! "$BIN" extract -m "$method" -sf "$stego" > "$test_dir/extract/stdout.txt" 2> "$test_dir/extract/stderr.txt";
+    then
+        echo 1>&2 "Failed to extract from stego: $stego"
+        return 1
+    fi
+    out+=";$(./ber "$MSG_FILE" "$test_dir/extract/stdout.txt")"
+
+    #local fs
+    #fs=$(soxi -r "$cover")
+    #local target_fs=$(( fs / 2 ))
+    #sox "$stego" "$test_dir/resample/out.wav" rate "$target_fs"
+    #
+    mkdir -p "$test_dir/resample"
+    sox "$stego" "$test_dir/resample/tmp.wav" downsample
+    sox "$test_dir/resample/tmp.wav" "$test_dir/resample/out.wav" upsample
+    "$BIN" extract -m "$method" -sf "$test_dir/resample/out.wav" > "$test_dir/resample/stdout.txt" 2> "$test_dir/resample/stderr.txt"
+    out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/resample/stdout.txt")"
+
+    mkdir -p "$test_dir/amplify"
+    sox "$stego" "$test_dir/amplify/out.wav" vol 3dB
+    "$BIN" extract -m "$method" -sf "$test_dir/amplify/out.wav" > "$test_dir/amplify/stdout.txt" 2> "$test_dir/amplify/stderr.txt"
+    out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/amplify/stdout.txt")"
+
+    mkdir -p "$test_dir/attenuate"
+    sox "$stego" "$test_dir/attenuate/out.wav" vol -3dB
+    "$BIN" extract -m "$method" -sf "$test_dir/attenuate/out.wav" > "$test_dir/attenuate/stdout.txt" 2> "$test_dir/attenuate/stderr.txt"
+    out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/attenuate/stdout.txt")"
+
+    local bit_depth
+    bit_depth=$(soxi -b "$stego")
+    if [ "$bit_depth" -ge 8 ]; then
+        local target_bits=$(( bit_depth - 8 ))
+        mkdir -p "$test_dir/less_bits"
+        sox "$stego" -b "$target_bits" "$test_dir/less_bits/tmp.wav"
+        sox "$test_dir/less_bits/tmp.wav" -b "$bit_depth" "$test_dir/less_bits/out.wav"
+        "$BIN" extract -m "$method" -sf "$test_dir/less_bits/out.wav" > "$test_dir/less_bits/stdout.txt" 2> "$test_dir/less_bits/stderr.txt"
+        out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/less_bits/stdout.txt")"
+    else
+        out+="N/A"
+    fi
+
+    echo "$out" # newline
+
+    # TODO low/high pass?
+    # TODO take a look at steganalysis attacks
+}
+
+print_help() {
+    echo "Usage: test BIN COVERS_DIR OUTPUT_DIR MSG_FILE"
+}
+
+if [ "$1" = "--help" ]; then
+    print_help
+    exit 0
+fi
+
+if [ ! -d "$COVERS_DIR" ]; then
+    echo "COVERS_DIR must be a directory, see --help" 1>&2
+    exit 1
+fi
+
+if [ ! -d "$OUTPUT_DIR" ]; then
+    echo "OUTPUT_DIR must be a directory, see --help" 1>&2
+    exit 1
+fi
+
+print_header() {
+    echo "method;snr;extraction;resampling;amplification;attenuation;requantization"
+}
+
+#./generate_results.sh ../build/src/stego ../../dataset/music  out/ input.txt 2>/dev/null
+
+print_header
+for cover in "$COVERS_DIR"/*; do
+    test_dir="$OUTPUT_DIR/${cover##*/}.out"
+    #echo "$test_dir"
+    mkdir -p "$test_dir"
+    for method in $_METHODS; do
+        method_dir="$test_dir/$method"
+        ##echo "----------------------------------------------------------------------"
+        #echo "$method_dir"
+        mkdir -p "$method_dir"
+        test_method "$method" "$cover" "$method_dir" > "$OUTPUT_DIR/$method.tmp" &
+    done
+    wait
+    for method in $_METHODS; do
+        cat "$OUTPUT_DIR/$method.tmp"
+    done
+    ##echo "======================================================================"
+done
