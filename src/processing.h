@@ -5,8 +5,6 @@
 #include <cstddef>
 #include <vector>
 
-#include <fftw3.h>
-
 using namespace std;
 
 template <typename T>

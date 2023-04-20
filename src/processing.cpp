@@ -1,11 +1,7 @@
 #include <cmath>
 #include <complex>
 
-#include <fftw3.h>
-
 #include "processing.h"
-
-using namespace std;
 
 void amplitude(std::complex<double>* dft, double* amp, unsigned N)
 {

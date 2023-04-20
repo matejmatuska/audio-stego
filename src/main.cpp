@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <iomanip>
@@ -152,10 +153,10 @@ const VectorInputBitStream process_input(std::istream& input,
   std::vector<uint8_t> message{std::istreambuf_iterator<char>(input),
                                std::istreambuf_iterator<char>()};
 
-  if (message.size() > capacity) {
-    std::cerr << "Message is longer than capacity (" << message.size()
+  if (message.size() * 8 > capacity) {
+    std::cerr << "Message is longer than capacity (" << message.size() * 8
               << " vs. " << capacity << "), continuing with cut message!\n";
-    message.resize(capacity);
+    message.resize(std::ceil(capacity / 8.0));
   }
   BitVector source;
   if (EMBED_LENGTH) {
@@ -177,7 +178,8 @@ std::vector<uint8_t> process_output(const VectorOutputBitStream& obs,
   }
 
   std::vector<uint8_t> bytes = sink.to_bytes(data_start_bit);
-  bytes.resize(capacity);
+  std::cerr << bytes.size() << std::endl;
+  bytes.resize(std::ceil(capacity / 8.0));
   return bytes;
 }
 
@@ -219,7 +221,7 @@ bool embed_command(struct args& args)
     auto method = get_method(args.method.value(), params);
     std::size_t capacity = method->capacity(coverfile.frames());
 
-    VectorInputBitStream ibs = process_input(*input, capacity / 8);
+    VectorInputBitStream ibs = process_input(*input, capacity);
 
     embedder_variant embedder = method->make_embedder(ibs);
     std::visit([&](auto&& v) { file_embed(*v, coverfile, stegofile); },
@@ -263,7 +265,7 @@ bool extract_command(struct args& args)
     VectorOutputBitStream obs;
     std::visit([&](auto&& v) { file_extract(*v, stegofile, obs); }, extractor);
 
-    std::vector<uint8_t> out{process_output(obs, capacity / 8)};
+    std::vector<uint8_t> out{process_output(obs, capacity)};
     output->write(reinterpret_cast<char*>(out.data()), out.size());
   } catch (const std::invalid_argument& e) {
     std::cerr << "Error: " << e.what() << std::endl;
@@ -284,6 +286,7 @@ bool info_command(struct args& args)
   Params params = parse_key(args.key);
   params.insert("samplerate", std::to_string(file.samplerate()));
   print_fileinfo(file, args.coverfile.value(), params);
+
   return 1;
 }
 

@@ -1,3 +1,4 @@
+#include <cmath>
 #include <memory>
 #include <stdexcept>
 
@@ -38,7 +39,6 @@ PhaseMethod::PhaseMethod(const Params& params)
     throw std::invalid_argument(
         "\"from\" frequency must be lower than \"to\" frequency");
   }
-
 };
 
 embedder_variant PhaseMethod::make_embedder(InputBitStream& input) const
@@ -76,12 +76,12 @@ extractor_variant EchoHidingMethod::make_extractor() const
 
 ssize_t EchoHidingMethod::capacity(std::size_t samples) const
 {
-  return samples / frame_size;
+  return std::round(samples / (double)frame_size);
 }
 
 ToneInsertionMethod::ToneInsertionMethod(const Params& params)
 {
-  frame_size = params.get_or("framesize", 2046);
+  frame_size = params.get_or("framesize", 4096);
   freq0 = params.get_or("freq0", 1875);
   freq1 = params.get_or("freq1", 2625);
   samplerate = params.get_ul("samplerate");
@@ -101,7 +101,7 @@ extractor_variant ToneInsertionMethod::make_extractor() const
 
 ssize_t ToneInsertionMethod::capacity(std::size_t samples) const
 {
-  return samples / frame_size;
+  return std::round(samples / (double)frame_size);
 }
 
 EchoHidingHCMethod::EchoHidingHCMethod(const Params& params)
@@ -121,5 +121,5 @@ extractor_variant EchoHidingHCMethod::make_extractor() const
 
 ssize_t EchoHidingHCMethod::capacity(std::size_t samples) const
 {
-  return samples / frame_size * 4;
+  return std::round(samples / (double)frame_size) * 4;
 }
