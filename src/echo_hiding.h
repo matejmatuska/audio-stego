@@ -11,6 +11,7 @@ class EchoHidingEmbedder : public Embedder<double> {
  public:
   EchoHidingEmbedder(InputBitStream& data,
                      std::size_t frame_size,
+                     double echo_amp,
                      unsigned echo_delay_zero,
                      unsigned echo_delay_one);
 
@@ -26,6 +27,7 @@ class EchoHidingEmbedder : public Embedder<double> {
   std::vector<double> echo_zero;
   std::vector<double> echo_one;
   std::vector<double> mixer;
+
 
   Conv conv_zero;
   Conv conv_one;

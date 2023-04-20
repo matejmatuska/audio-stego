@@ -22,10 +22,13 @@
 #              ...
 #          echo/
 #          tone/
-BIN=$1
-COVERS_DIR=$2
-OUTPUT_DIR=$3
-MSG_FILE=$4
+
+BIN="../build/src/stego"
+PARAMS_FILE="./params.txt"
+
+COVERS_DIR=$1
+OUTPUT_DIR=$2
+MSG_FILE=$3
 
 _METHODS=${METHODS:-"lsb phase echo tone echo-hc"}
 
@@ -33,11 +36,12 @@ test_method() {
     local method=$1
     local cover=$2
     local test_dir=$3
-    local stego="$test_dir/out.wav"
+    local params=$4
 
+    local stego="$test_dir/out.wav"
     local out;
 
-    if ! "$BIN" embed -m "$method" -cf "$cover" -sf "$stego" < "$MSG_FILE"  2> "$test_dir/stderr.txt";
+    if ! "$BIN" embed -m "$method" -cf "$cover" -sf "$stego" -k "$params" < "$MSG_FILE"  2> "$test_dir/stderr.txt";
     then
         echo 1>&2 "Failed to embed to cover: $cover"
         return 1
@@ -46,7 +50,7 @@ test_method() {
     out="$method;$(./snr -db "$cover" "$stego")"
 
     mkdir -p "$test_dir/extract"
-    if ! "$BIN" extract -m "$method" -sf "$stego" > "$test_dir/extract/stdout.txt" 2> "$test_dir/extract/stderr.txt";
+    if ! "$BIN" extract -m "$method" -sf "$stego" -k "$params" > "$test_dir/extract/stdout.txt" 2> "$test_dir/extract/stderr.txt";
     then
         echo 1>&2 "Failed to extract from stego: $stego"
         return 1
@@ -61,17 +65,17 @@ test_method() {
     mkdir -p "$test_dir/resample"
     sox "$stego" "$test_dir/resample/tmp.wav" downsample
     sox "$test_dir/resample/tmp.wav" "$test_dir/resample/out.wav" upsample
-    "$BIN" extract -m "$method" -sf "$test_dir/resample/out.wav" > "$test_dir/resample/stdout.txt" 2> "$test_dir/resample/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/resample/out.wav" -k "$params" > "$test_dir/resample/stdout.txt" 2> "$test_dir/resample/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/resample/stdout.txt")"
 
     mkdir -p "$test_dir/amplify"
     sox "$stego" "$test_dir/amplify/out.wav" vol 3dB
-    "$BIN" extract -m "$method" -sf "$test_dir/amplify/out.wav" > "$test_dir/amplify/stdout.txt" 2> "$test_dir/amplify/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/amplify/out.wav" -k "$params" > "$test_dir/amplify/stdout.txt" 2> "$test_dir/amplify/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/amplify/stdout.txt")"
 
     mkdir -p "$test_dir/attenuate"
     sox "$stego" "$test_dir/attenuate/out.wav" vol -3dB
-    "$BIN" extract -m "$method" -sf "$test_dir/attenuate/out.wav" > "$test_dir/attenuate/stdout.txt" 2> "$test_dir/attenuate/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/attenuate/out.wav" -k "$params" > "$test_dir/attenuate/stdout.txt" 2> "$test_dir/attenuate/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/attenuate/stdout.txt")"
 
     local bit_depth
@@ -81,13 +85,13 @@ test_method() {
         mkdir -p "$test_dir/less_bits"
         sox "$stego" -b "$target_bits" "$test_dir/less_bits/tmp.wav"
         sox "$test_dir/less_bits/tmp.wav" -b "$bit_depth" "$test_dir/less_bits/out.wav"
-        "$BIN" extract -m "$method" -sf "$test_dir/less_bits/out.wav" > "$test_dir/less_bits/stdout.txt" 2> "$test_dir/less_bits/stderr.txt"
+        "$BIN" extract -m "$method" -sf "$test_dir/less_bits/out.wav" -k "$params" > "$test_dir/less_bits/stdout.txt" 2> "$test_dir/less_bits/stderr.txt"
         out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/less_bits/stdout.txt")"
     else
         out+="N/A"
     fi
 
-    echo "$out" # newline
+    echo "$out;$params" # newline
 
     # TODO low/high pass?
     # TODO take a look at steganalysis attacks
@@ -113,26 +117,34 @@ if [ ! -d "$OUTPUT_DIR" ]; then
 fi
 
 print_header() {
-    echo "method;snr;extraction;resampling;amplification;attenuation;requantization"
+    echo "method;snr;extraction;resampling;amplification;attenuation;requantization;params"
 }
-
-#./generate_results.sh ../build/src/stego ../../dataset/music  out/ input.txt 2>/dev/null
 
 print_header
 for cover in "$COVERS_DIR"/*; do
     test_dir="$OUTPUT_DIR/${cover##*/}.out"
-    #echo "$test_dir"
+
+    jobs=0
     mkdir -p "$test_dir"
-    for method in $_METHODS; do
-        method_dir="$test_dir/$method"
-        ##echo "----------------------------------------------------------------------"
-        #echo "$method_dir"
+    while IFS=' ' read -r method params; do
+        [ "${method::1}" = \# ] && continue
+        method_dir="$test_dir/$method-$params"
         mkdir -p "$method_dir"
-        test_method "$method" "$cover" "$method_dir" > "$OUTPUT_DIR/$method.tmp" &
-    done
+        test_method "$method" "$cover" "$method_dir" "$params" > "$OUTPUT_DIR/$method-$params.tmp" &
+        if [ $jobs -eq 8 ]; then
+            wait
+            for tmpf in "$OUTPUT_DIR/"*.tmp; do
+                cat "$tmpf"
+                rm "$tmpf"
+            done
+            jobs=0
+        fi
+        jobs=$((jobs + 1))
+    done < $PARAMS_FILE
+
     wait
-    for method in $_METHODS; do
-        cat "$OUTPUT_DIR/$method.tmp"
+    for tmpf in "$OUTPUT_DIR/"*.tmp; do
+        cat "$tmpf"
+        rm "$tmpf"
     done
-    ##echo "======================================================================"
 done

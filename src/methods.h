@@ -49,6 +49,7 @@ class Params {
   ACCESSOR_DEF(int, std::stoi);
   ACCESSOR_DEF(unsigned, std::stoul);
   ACCESSOR_DEF(unsigned long long, std::stoull);
+  ACCESSOR_DEF(double, std::stod);
 
 #define ACCESSOR(type, fname, conv_func)                         \
   type get_##fname(const std::string& name) const                \
@@ -63,6 +64,7 @@ class Params {
   ACCESSOR(int, i, std::stoi);
   ACCESSOR(unsigned, ul, std::stoul);
   ACCESSOR(unsigned long long, ull, std::stoull);
+  ACCESSOR(double, d, std::stod);
 };
 
 class Method {
@@ -74,14 +76,13 @@ class Method {
 
 class LSBMethod : public Method {
  public:
-  LSBMethod(const Params& params) { bitmask = params.get_or("bitmask", 0x1); };
-
+  LSBMethod(const Params& params);
   embedder_variant make_embedder(InputBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
  protected:
-  unsigned bitmask;
+  unsigned bits_per_frame;
 };
 
 class PhaseMethod : public Method {
@@ -108,6 +109,7 @@ class EchoHidingMethod : public Method {
   std::size_t frame_size;
   unsigned delay0;
   unsigned delay1;
+  double amp;
 };
 
 class ToneInsertionMethod : public Method {
@@ -133,6 +135,8 @@ class EchoHidingHCMethod : public Method {
 
  protected:
   std::size_t frame_size;
+  unsigned echo_interval;
+  double amp;
 };
 
 #endif  // METHODS_H

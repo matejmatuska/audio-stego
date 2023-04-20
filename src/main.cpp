@@ -178,7 +178,6 @@ std::vector<uint8_t> process_output(const VectorOutputBitStream& obs,
   }
 
   std::vector<uint8_t> bytes = sink.to_bytes(data_start_bit);
-  std::cerr << bytes.size() << std::endl;
   bytes.resize(std::ceil(capacity / 8.0));
   return bytes;
 }
