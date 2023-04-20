@@ -213,6 +213,8 @@ bool embed_command(struct args& args)
   Params params = parse_key(args.key);
   params.insert("samplerate", std::to_string(coverfile.samplerate()));
 
+  stegofile.command(SFC_SET_CLIPPING, NULL, SF_TRUE);
+
   try {
     auto method = get_method(args.method.value(), params);
     std::size_t capacity = method->capacity(coverfile.frames());
