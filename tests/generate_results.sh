@@ -30,7 +30,7 @@ COVERS_DIR=$1
 OUTPUT_DIR=$2
 MSG_FILE=$3
 
-_METHODS=${METHODS:-"lsb phase echo tone echo-hc"}
+MAX_JOBS=8
 
 test_method() {
     local method=$1
@@ -91,7 +91,9 @@ test_method() {
         out+="N/A"
     fi
 
-    echo "$out;$params" # newline
+    type="${cover##*/}" # strip path
+    type=${type%-*}
+    echo "$out;$params;${type}" # newline
 
     # TODO low/high pass?
     # TODO take a look at steganalysis attacks
@@ -117,7 +119,7 @@ if [ ! -d "$OUTPUT_DIR" ]; then
 fi
 
 print_header() {
-    echo "method;snr;extraction;resampling;amplification;attenuation;requantization;params"
+    echo "method;snr;extraction;resampling;amplification;attenuation;requantization;params;type"
 }
 
 print_header
@@ -131,7 +133,7 @@ for cover in "$COVERS_DIR"/*; do
         method_dir="$test_dir/$method-$params"
         mkdir -p "$method_dir"
         test_method "$method" "$cover" "$method_dir" "$params" > "$OUTPUT_DIR/$method-$params.tmp" &
-        if [ $jobs -eq 8 ]; then
+        if [ $jobs -eq $MAX_JOBS ]; then
             wait
             for tmpf in "$OUTPUT_DIR/"*.tmp; do
                 cat "$tmpf"
@@ -141,7 +143,7 @@ for cover in "$COVERS_DIR"/*; do
         fi
         jobs=$((jobs + 1))
     done < $PARAMS_FILE
-
+    # wait if there are less than MAX_JOBS jobs
     wait
     for tmpf in "$OUTPUT_DIR/"*.tmp; do
         cat "$tmpf"
