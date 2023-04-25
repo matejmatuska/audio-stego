@@ -91,6 +91,17 @@ test_method() {
         out+="N/A"
     fi
 
+    mkdir -p "$test_dir/mp3-compress"
+    sox "$stego" -C 128 "$test_dir/mp3-compress/out.mp3"
+    "$BIN" extract -m "$method" -sf "$test_dir/mp3-compress/out.mp3" -k "$params" > "$test_dir/mp3-compress/stdout.txt" 2> "$test_dir/mp3-compress/stderr.txt"
+    out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/mp3-compress/stdout.txt")"
+
+    mkdir -p "$test_dir/aac-compress"
+    ffmpeg -y -i "$stego" -c:a aac -b:a 128k "$test_dir/aac-compress/out.m4a"
+    ffmpeg -y -i "$test_dir/aac-compress/out.m4a" "$test_dir/aac-compress/out.wav"
+    "$BIN" extract -m "$method" -sf "$test_dir/aac-compress/out.wav" -k "$params" > "$test_dir/aac-compress/stdout.txt" 2> "$test_dir/aac-compress/stderr.txt"
+    out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/aac-compress/stdout.txt")"
+
     type="${cover##*/}" # strip path
     type=${type%-*}
     echo "$out;$params;${type}" # newline
@@ -119,7 +130,7 @@ if [ ! -d "$OUTPUT_DIR" ]; then
 fi
 
 print_header() {
-    echo "method;snr;extraction;resampling;amplification;attenuation;requantization;params;type"
+    echo "method;snr;extraction;resampling;amplification;attenuation;requantization;mp3-compress;aac-compress;params;type"
 }
 
 print_header

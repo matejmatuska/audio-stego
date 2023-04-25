@@ -20,7 +20,7 @@ LSBMethod::LSBMethod(const Params& params)
     throw std::invalid_argument("number of LSBs must be > 0");
 }
 
-embedder_variant LSBMethod::make_embedder(InputBitStream& input) const
+embedder_variant LSBMethod::make_embedder(InBitStream& input) const
 {
   return make_unique<LsbEmbedder<short>>(input, bits_per_frame);
 }
@@ -52,7 +52,7 @@ PhaseMethod::PhaseMethod(const Params& params)
   }
 };
 
-embedder_variant PhaseMethod::make_embedder(InputBitStream& input) const
+embedder_variant PhaseMethod::make_embedder(InBitStream& input) const
 {
   return make_unique<PhaseEmbedder>(input, frame_size, bin_from, bin_to);
 }
@@ -86,7 +86,7 @@ EchoHidingMethod::EchoHidingMethod(const Params& params)
     throw std::invalid_argument("amp must be positive");
 }
 
-embedder_variant EchoHidingMethod::make_embedder(InputBitStream& input) const
+embedder_variant EchoHidingMethod::make_embedder(InBitStream& input) const
 {
   return std::make_unique<EchoHidingEmbedder>(input, frame_size, amp, delay0,
                                               delay1);
@@ -119,7 +119,7 @@ ToneInsertionMethod::ToneInsertionMethod(const Params& params)
     throw std::invalid_argument("freq1 must be lower than samplerate / 2");
 }
 
-embedder_variant ToneInsertionMethod::make_embedder(InputBitStream& input) const
+embedder_variant ToneInsertionMethod::make_embedder(InBitStream& input) const
 {
   return make_unique<ToneInsertionEmbedder>(input, frame_size, samplerate,
                                             freq0, freq1);
@@ -154,7 +154,7 @@ EchoHidingHCMethod::EchoHidingHCMethod(const Params& params)
   }
 }
 
-embedder_variant EchoHidingHCMethod::make_embedder(InputBitStream& input) const
+embedder_variant EchoHidingHCMethod::make_embedder(InBitStream& input) const
 {
   return make_unique<EchoHidingHCEmbedder>(input, frame_size, echo_interval,
                                            amp);
@@ -168,4 +168,35 @@ extractor_variant EchoHidingHCMethod::make_extractor() const
 ssize_t EchoHidingHCMethod::capacity(std::size_t samples) const
 {
   return std::round(samples / (double)frame_size) * 4;
+}
+
+template <typename T>
+std::unique_ptr<Method> create_unique(const Params& params)
+{
+  return std::make_unique<T>(params);
+}
+
+MethodFactory::creator_map MethodFactory::method_map = {
+    {"lsb", create_unique<LSBMethod>},
+    {"phase", create_unique<PhaseMethod>},
+    {"echo", create_unique<EchoHidingMethod>},
+    {"tone", create_unique<ToneInsertionMethod>},
+    {"echo-hc", create_unique<EchoHidingHCMethod>}};
+
+std::unique_ptr<Method> MethodFactory::create(const std::string& method_name,
+                                              const Params& params)
+{
+  if (method_map.find(method_name) == method_map.end()) {
+    throw std::invalid_argument("Unknown method: " + method_name);
+  }
+  return method_map[method_name](params);
+}
+
+std::vector<std::string> MethodFactory::list_methods()
+{
+  std::vector<std::string> keys;
+  for (auto it = method_map.begin(); it != method_map.end(); ++it) {
+    keys.push_back(it->first);
+  }
+  return keys;
 }

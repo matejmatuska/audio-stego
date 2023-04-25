@@ -16,10 +16,10 @@ class PhaseExtractor : public Extractor<double> {
                  std::size_t bin_from,
                  std::size_t bin_to);
 
-  bool extract(OutputBitStream& data) override;
+  bool extract(OutBitStream& data) override;
 
  private:
-  void decodeBlock(const std::vector<double>& phases, OutputBitStream& data);
+  void decodeBlock(const std::vector<double>& phases, OutBitStream& data);
 
   std::size_t bin_from;
   std::size_t bin_to;

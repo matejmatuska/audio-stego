@@ -3,8 +3,8 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <map>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -12,7 +12,6 @@
 #include <sndfile.hh>
 
 #include "args.h"
-#include "bitvector.h"
 #include "embedder.h"
 #include "extractor.h"
 #include "ibitstream.h"
@@ -23,77 +22,118 @@
 #define EMBED_LENGTH 0
 #define LENGTH_BITS 16
 
-using method_creator = std::unique_ptr<Method> (*)(const Params& params);
-std::map<std::string, method_creator> methods_map;
+struct AudioParams {
+  unsigned samplerate;
+  unsigned samples;
+  unsigned channels;
+};
 
-template <typename T>
-std::unique_ptr<Method> create_unique(const Params& params)
-{
-  return std::make_unique<T>(params);
-}
+class IOException : public std::runtime_error {
+ public:
+  using std::runtime_error::runtime_error;
+};
 
-void register_methods()
-{
-  methods_map["lsb"] = create_unique<LSBMethod>;
-  methods_map["phase"] = create_unique<PhaseMethod>;
-  methods_map["echo"] = create_unique<EchoHidingMethod>;
-  methods_map["tone"] = create_unique<ToneInsertionMethod>;
-  methods_map["echo-hc"] = create_unique<EchoHidingHCMethod>;
-}
+class CoverFile {
+  SndfileHandle cover;
 
-template <typename T>
-void file_embed(Embedder<T>& embedder,
-                SndfileHandle& cover,
-                SndfileHandle& stego)
-{
-  std::vector<T> buffer(embedder.frame_size() * cover.channels());
-  std::vector<T> left(embedder.frame_size());
-  std::vector<T> right(embedder.frame_size());
-
-  sf_count_t read = 0;
-  bool done = false;
-  while ((read = cover.readf(buffer.data(), embedder.frame_size())) > 0) {
-    // TODO multichannel
-    if (!done) {
-      demultiplex(buffer, embedder.input(), 0, stego.channels());
-      done = embedder.embed();
-      multiplex(embedder.output(), buffer, 0, stego.channels());
+ public:
+  CoverFile(const std::string& filename) : cover(filename, SFM_READ)
+  {
+    if (!cover) {
+      std::stringstream msg;
+      msg << "Failed to open file " << filename << ": ";
+      msg << cover.strError() << std::endl;
+      throw IOException(msg.str());
     }
-    stego.writef(buffer.data(), read);
+  };
+
+  AudioParams audio_params()
+  {
+    AudioParams params{static_cast<unsigned int>(cover.samplerate()),
+                       static_cast<unsigned int>(cover.frames()),
+                       static_cast<unsigned int>(cover.channels())};
+    return params;
   }
-}
 
-template <typename T>
-void file_extract(Extractor<T>& extractor,
-                  SndfileHandle& stego,
-                  OutputBitStream& output)
-{
-  std::vector<T> buffer(extractor.frame_size() * stego.channels());
-  std::vector<T> left(extractor.frame_size());
-  std::vector<T> right(extractor.frame_size());
-
-  sf_count_t read = 0;
-  while ((read = stego.readf(buffer.data(), extractor.frame_size())) > 0) {
-    // TODO multichannel
-    demultiplex(buffer, extractor.input(), 0, stego.channels());
-    if (output.eof()) {
-      break;
+  template <typename T>
+  void embed(const std::string& stegofile,
+             Embedder<T>& embedder,
+             InBitStream& bs)
+  {
+    SndfileHandle stego{stegofile, SFM_WRITE, cover.format(), cover.channels(),
+                        cover.samplerate()};
+    if (!stego) {
+      std::stringstream msg;
+      msg << "Failed to open file " << stegofile << ": ";
+      msg << stego.strError() << std::endl;
+      throw IOException(msg.str());
     }
 
-    bool should_continue = extractor.extract(output);
-    if (!should_continue)
-      break;
-  }
-}
+    stego.command(SFC_SET_CLIPPING, NULL, SF_TRUE);
+    std::vector<T> buffer(embedder.frame_size() * cover.channels());
+    std::vector<T> left(embedder.frame_size());
+    std::vector<T> right(embedder.frame_size());
 
-const std::unique_ptr<Method> get_method(const std::string& method,
-                                         const Params& params)
-{
-  if (methods_map.find(method) == methods_map.end()) {
-    throw std::invalid_argument("Unknown method: " + method);
+    sf_count_t read = 0;
+    bool done = false;
+    while ((read = cover.readf(buffer.data(), embedder.frame_size())) > 0) {
+      // TODO multichannel
+      if (!done && read == embedder.frame_size()) {
+        demultiplex(buffer, embedder.input(), 0, stego.channels());
+        done = embedder.embed();
+        multiplex(embedder.output(), buffer, 0, stego.channels());
+      }
+      stego.writef(buffer.data(), read);
+    }
   }
-  return methods_map[method](params);
-}
+};
+
+class StegoFile {
+  SndfileHandle stego;
+
+ public:
+  StegoFile(const std::string& filename) : stego(filename, SFM_READ)
+  {
+    if (!stego) {
+      std::stringstream msg;
+      msg << "Failed to open file " << filename << ": ";
+      msg << stego.strError() << std::endl;
+      throw IOException(msg.str());
+    }
+  }
+
+  AudioParams audio_params()
+  {
+    AudioParams params{static_cast<unsigned int>(stego.samplerate()),
+                       static_cast<unsigned int>(stego.frames()),
+                       static_cast<unsigned int>(stego.channels())};
+    return params;
+  }
+
+  template <typename T>
+  void extract(Extractor<T>& extractor, OutBitStream& output)
+  {
+    std::vector<T> buffer(extractor.frame_size() * stego.channels());
+    std::vector<T> left(extractor.frame_size());
+    std::vector<T> right(extractor.frame_size());
+
+    sf_count_t read = 0;
+    bool should_continue = true;
+    while ((read = stego.readf(buffer.data(), extractor.frame_size())) > 0) {
+      // TODO multichannel
+      if (read != extractor.frame_size())
+        break;
+      demultiplex(buffer, extractor.input(), 0, stego.channels());
+      if (output.eof()) {
+        break;
+      }
+
+      should_continue = extractor.extract(output);
+      if (!should_continue)
+        break;
+    }
+  }
+};
 
 void print_fileinfo(SndfileHandle& file,
                     const std::string& filename,
@@ -131,9 +171,10 @@ void print_fileinfo(SndfileHandle& file,
             << " seconds\n";
 
   std::cout << "\nEmbedding capacity (bits):\n";
-  for (const auto& [key, value] : methods_map) {
-    std::cout << setw(10) << key << ": "
-              << value(params)->capacity(file.frames()) << std::endl;
+  for (const auto& method : MethodFactory::list_methods()) {
+    std::cout << setw(10) << method << ": "
+              << MethodFactory::create(method, params)->capacity(file.frames())
+              << std::endl;
   }
 }
 
@@ -147,58 +188,8 @@ void print_help()
       << "       stego info <filename>\n";
 }
 
-const VectorInputBitStream process_input(std::istream& input,
-                                         std::size_t capacity)
-{
-  std::vector<uint8_t> message{std::istreambuf_iterator<char>(input),
-                               std::istreambuf_iterator<char>()};
-
-  if (message.size() * 8 > capacity) {
-    std::cerr << "Message is longer than capacity (" << message.size() * 8
-              << " vs. " << capacity << "), continuing with cut message!\n";
-    message.resize(std::ceil(capacity / 8.0));
-  }
-  BitVector source;
-  if (EMBED_LENGTH) {
-    source.append((uint32_t)message.size(), LENGTH_BITS);
-  }
-  source.append(message);
-  return VectorInputBitStream{source};
-}
-
-std::vector<uint8_t> process_output(const VectorOutputBitStream& obs,
-                                    std::size_t capacity)
-{
-  BitVector sink{obs.to_vector()};
-  [[maybe_unused]] std::size_t data_start_bit = 0;
-
-  if (EMBED_LENGTH) {
-    data_start_bit = LENGTH_BITS;
-    [[maybe_unused]] std::size_t msg_len = sink.read(0, LENGTH_BITS);
-  }
-
-  std::vector<uint8_t> bytes = sink.to_bytes(data_start_bit);
-  bytes.resize(std::ceil(capacity / 8.0));
-  return bytes;
-}
-
 bool embed_command(struct args& args)
 {
-  SndfileHandle coverfile{args.coverfile.value(), SFM_READ};
-  if (!coverfile) {
-    std::cerr << "Failed to open file " << args.coverfile.value() << ": ";
-    std::cerr << coverfile.strError() << std::endl;
-    return 0;
-  }
-
-  SndfileHandle stegofile{args.stegofile.value(), SFM_WRITE, coverfile.format(),
-                          coverfile.channels(), coverfile.samplerate()};
-  if (!stegofile) {
-    std::cerr << "Failed to open file " << args.stegofile.value() << ": ";
-    std::cerr << stegofile.strError() << std::endl;
-    return 0;
-  }
-
   std::shared_ptr<istream> input;
   if (args.msgfile) {
     ifstream* file = new ifstream(args.msgfile.value());
@@ -211,21 +202,34 @@ bool embed_command(struct args& args)
     input.reset(&std::cin, [](...) {});
   }
 
-  Params params = parse_key(args.key);
-  params.insert("samplerate", std::to_string(coverfile.samplerate()));
-
-  stegofile.command(SFC_SET_CLIPPING, NULL, SF_TRUE);
-
   try {
-    auto method = get_method(args.method.value(), params);
-    std::size_t capacity = method->capacity(coverfile.frames());
+    CoverFile coverfile{args.coverfile.value()};
 
-    VectorInputBitStream ibs = process_input(*input, capacity);
+    Params params = parse_key(args.key);
+    params.insert("samplerate",
+                  std::to_string(coverfile.audio_params().samplerate));
 
-    embedder_variant embedder = method->make_embedder(ibs);
-    std::visit([&](auto&& v) { file_embed(*v, coverfile, stegofile); },
-               embedder);
+    auto method = MethodFactory::create(args.method.value(), params);
+    std::size_t capacity = method->capacity(coverfile.audio_params().samples);
+    if (args.limit.has_value() && args.limit.value() < capacity)
+      capacity = args.limit.value();
+
+    std::shared_ptr<InBitStream> wrapper = InBitStream::from_istream(*input);
+    if (args.limit)
+      wrapper = make_shared<LimitedInBitStream>(wrapper, args.limit.value());
+    if (args.use_err_correction)
+      wrapper = make_shared<HammingInBitStream>(wrapper);
+
+    std::visit(
+        [&](auto&& v) {
+          coverfile.embed(args.stegofile.value(), *v, *wrapper);
+        },
+        method->make_embedder(*wrapper));
+
   } catch (const std::invalid_argument& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 0;
+  } catch (const IOException& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 0;
   }
@@ -234,13 +238,6 @@ bool embed_command(struct args& args)
 
 bool extract_command(struct args& args)
 {
-  SndfileHandle stegofile{args.stegofile.value(), SFM_READ};
-  if (!stegofile) {
-    std::cerr << "Failed to open file " << args.stegofile.value() << ": ";
-    std::cerr << stegofile.strError() << std::endl;
-    return 0;
-  }
-
   std::shared_ptr<ostream> output;
   if (args.msgfile) {
     ofstream* file = new ofstream(args.msgfile.value());
@@ -253,20 +250,31 @@ bool extract_command(struct args& args)
     output.reset(&std::cout, [](...) {});
   }
 
-  Params params = parse_key(args.key);
-  params.insert("samplerate", std::to_string(stegofile.samplerate()));
-
   try {
-    auto method = get_method(args.method.value(), params);
-    std::size_t capacity = method->capacity(stegofile.frames());
-    extractor_variant extractor = method->make_extractor();
+    StegoFile stegofile{args.stegofile.value()};
 
-    VectorOutputBitStream obs;
-    std::visit([&](auto&& v) { file_extract(*v, stegofile, obs); }, extractor);
+    Params params = parse_key(args.key);
+    params.insert("samplerate",
+                  std::to_string(stegofile.audio_params().samplerate));
 
-    std::vector<uint8_t> out{process_output(obs, capacity)};
-    output->write(reinterpret_cast<char*>(out.data()), out.size());
+    auto method = MethodFactory::create(args.method.value(), params);
+    std::size_t capacity = method->capacity(
+        stegofile.audio_params().samples);  // * 4.0 / 7.0  - 8;
+
+    std::shared_ptr<OutBitStream> obs = OutBitStream::to_ostream(*output);
+    std::shared_ptr<OutBitStream> wrapped = obs;
+    if (args.limit)
+      wrapped = make_shared<LimitedOutBitStream>(wrapped, args.limit.value());
+    if (args.use_err_correction)
+      wrapped = make_shared<HammingOutBitStream>(wrapped);
+
+    std::visit([&](auto&& v) { stegofile.extract(*v, *wrapped); },
+               method->make_extractor());
+
   } catch (const std::invalid_argument& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 0;
+  } catch (const IOException& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 0;
   }
@@ -298,8 +306,6 @@ int main(int argc, char* argv[])
     std::cerr << "Error: " << e.what() << std::endl;
     return EXIT_FAILURE;
   }
-
-  register_methods();
 
   if (args.command == "--help") {
     print_help();

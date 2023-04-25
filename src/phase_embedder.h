@@ -9,7 +9,7 @@
 
 class PhaseEmbedder : public Embedder<double> {
  public:
-  PhaseEmbedder(InputBitStream& data,
+  PhaseEmbedder(InBitStream& data,
                 std::size_t frame_size,
                 std::size_t bin_from,
                 std::size_t bin_to);

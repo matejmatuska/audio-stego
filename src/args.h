@@ -12,6 +12,8 @@ struct args {
   std::optional<std::string> coverfile = std::nullopt;
   std::optional<std::string> stegofile = std::nullopt;
   std::optional<std::string> msgfile = std::nullopt;
+  std::optional<unsigned long> limit = std::nullopt;  // in bits
+  bool use_err_correction = false;
 };
 
 struct args parse_args(int argc, char* argv[]);

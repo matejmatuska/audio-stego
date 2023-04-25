@@ -9,7 +9,7 @@
 
 class EchoHidingEmbedder : public Embedder<double> {
  public:
-  EchoHidingEmbedder(InputBitStream& data,
+  EchoHidingEmbedder(InBitStream& data,
                      std::size_t frame_size,
                      double echo_amp,
                      unsigned echo_delay_zero,
@@ -39,7 +39,7 @@ class EchoHidingExtractor : public Extractor<double> {
                       unsigned echo_delay_zero,
                       unsigned echo_delay_one);
 
-  bool extract(OutputBitStream& data) override;
+  bool extract(OutBitStream& data) override;
 
  private:
   unsigned echo_delay_zero;

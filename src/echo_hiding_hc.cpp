@@ -16,7 +16,7 @@
 // the percentage of the the frame to use for transition
 #define SMOOTHING_PCT 0.25
 
-static bool get_bits(std::array<int, N_ECHOS>& bits, InputBitStream& data)
+static bool get_bits(std::array<int, N_ECHOS>& bits, InBitStream& data)
 {
   for (unsigned i = 0; i < bits.size(); i++) {
     bits[i] = data.next_bit();
@@ -43,13 +43,12 @@ void EchoHidingHCEmbedder::make_kernel(std::vector<double>& kernel,
   kernel[delay - 1] = amp;
 
   // create negative echo
-  std::size_t neg_echo_offset = echo_interval / 2;
-  delay =
-      neg_echo_offset + echo_interval * distance_multiplier(bits[2], bits[3]);
+  int neg_offset = echo_interval / 2;
+  delay = neg_offset + echo_interval * distance_multiplier(bits[2], bits[3]);
   kernel[delay - 1] = -amp;
 }
 
-EchoHidingHCEmbedder::EchoHidingHCEmbedder(InputBitStream& data,
+EchoHidingHCEmbedder::EchoHidingHCEmbedder(InBitStream& data,
                                            std::size_t frame_size,
                                            std::size_t kernel_len,
                                            double echo_amp)
@@ -69,7 +68,7 @@ EchoHidingHCEmbedder::EchoHidingHCEmbedder(InputBitStream& data,
 {
 }
 
-EchoHidingHCEmbedder::EchoHidingHCEmbedder(InputBitStream& data,
+EchoHidingHCEmbedder::EchoHidingHCEmbedder(InBitStream& data,
                                            std::size_t frame_size,
                                            unsigned echo_interval,
                                            double echo_amp)
@@ -158,7 +157,7 @@ EchoHidingHCExtractor::EchoHidingHCExtractor(std::size_t frame_size,
 {
 }
 
-bool EchoHidingHCExtractor::extract(OutputBitStream& data)
+bool EchoHidingHCExtractor::extract(OutBitStream& data)
 {
   autocorrelate.exec();
 

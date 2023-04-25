@@ -260,7 +260,8 @@ if __name__ == "__main__":
     elif sys.argv[2] == 'cmp':
         mod_map = {'resampling': 'Prevzorkovanie', 'attenuation': 'Stlmenie',
                    'amplification': 'Zosilnenie', 'extraction': 'Extrakcia',
-                   'requantization': 'Prekvantovanie'}
+                   'requantization': 'Prekvantovanie', 'mp3-compress': 'MP3 kompresia',
+                   'aac-compress': 'AAC kompresia'}
         df.rename(columns=mod_map, inplace=True)
 
         df['type'] = df['type'].map(
@@ -271,5 +272,5 @@ if __name__ == "__main__":
         plot_used_capacity_dep_length(save_fig)
         # plot_snr(df, save_fig)
         # plot_snr_by_type(df, save_fig)
-        # plot_ber(df, save_fig)
-        # plot_ber_by_type(df, save_fig)
+        plot_ber(df, save_fig)
+        plot_ber_by_type(df, save_fig)

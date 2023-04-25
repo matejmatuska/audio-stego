@@ -1,26 +1,27 @@
 #include "obitstream.h"
+#include <memory>
 
-bool VectorOutputBitStream::eof()
+bool VectorOutBitStream::eof() const
 {
   return false;
 }
 
-VectorOutputBitStream::VectorOutputBitStream() : sink() {}
+VectorOutBitStream::VectorOutBitStream() : sink() {}
 
-VectorOutputBitStream::VectorOutputBitStream(BitVector& sink) : sink(sink) {}
+VectorOutBitStream::VectorOutBitStream(BitVector& sink) : sink(sink) {}
 
-BitVector VectorOutputBitStream::to_vector() const
+BitVector VectorOutBitStream::to_vector() const
 {
   return sink;
 }
 
-LimitedOutputBitStream::LimitedOutputBitStream(OutputBitStream& in,
+LimitedOutBitStream::LimitedOutBitStream(std::shared_ptr<OutBitStream> in,
                                                std::size_t limit)
-    : OutputBitStream(), in(in), limit(limit)
+    : OutBitStream(), in(in), limit(limit)
 {
 }
 
-bool LimitedOutputBitStream::eof()
+bool LimitedOutBitStream::eof() const
 {
   return count >= limit;
 }

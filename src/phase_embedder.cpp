@@ -8,7 +8,7 @@
 #define MODULE 12
 #define STEP (M_PI / MODULE)
 
-PhaseEmbedder::PhaseEmbedder(InputBitStream& data,
+PhaseEmbedder::PhaseEmbedder(InBitStream& data,
                              std::size_t frame_size,
                              std::size_t bin_from,
                              std::size_t bin_to)
@@ -50,7 +50,7 @@ std::size_t PhaseEmbedder::encodeFirstBlock(vector<double>& phases)
 
 #if 0
   std::vector<double> encoded;
-  char bit;
+  int bit;
   while ((bit = data.next_bit()) != EOF && i < (fft_len - 1)) {
     encoded.push_back(bit ? (M_PI_2) : -(M_PI_2));
     i++;

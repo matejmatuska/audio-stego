@@ -19,7 +19,7 @@ class Extractor {
   /**
    * @return true if should continue else false
    */
-  virtual bool extract(OutputBitStream& output) = 0;
+  virtual bool extract(OutBitStream& output) = 0;
 
   const std::vector<T>& input() const { return in_frame; }
   std::vector<T>& input() { return in_frame; }

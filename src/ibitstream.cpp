@@ -1,27 +1,27 @@
 #include "ibitstream.h"
 
-VectorInputBitStream::VectorInputBitStream(const BitVector& source)
-    : InputBitStream(), source(source)
+VectorInBitStream::VectorInBitStream(const BitVector& source)
+    : InBitStream(), source(source)
 {
 }
 
-VectorInputBitStream::VectorInputBitStream(const VectorInputBitStream& other)
-    : InputBitStream(), source(other.source), index(other.index)
+VectorInBitStream::VectorInBitStream(const VectorInBitStream& other)
+    : InBitStream(), source(other.source), index(other.index)
 {
 }
 
-bool VectorInputBitStream::eof()
+bool VectorInBitStream::eof() const
 {
   return index >= source.size();
 }
 
-LimitedInputBitstream::LimitedInputBitstream(InputBitStream& in,
+LimitedInBitStream::LimitedInBitStream(std::shared_ptr<InBitStream> in,
                                              std::size_t limit)
-    : InputBitStream(), in(in), limit(limit)
+    : InBitStream(), in(in), limit(limit)
 {
 }
 
-bool LimitedInputBitstream::eof()
+bool LimitedInBitStream::eof() const
 {
-  return in.eof() || count >= limit;
+  return in->eof() || count >= limit;
 }

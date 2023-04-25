@@ -14,7 +14,7 @@
 
 class EchoHidingHCEmbedder : public Embedder<double> {
  public:
-  EchoHidingHCEmbedder(InputBitStream& data,
+  EchoHidingHCEmbedder(InBitStream& data,
                        std::size_t frame_size,
                        unsigned echo_interval,
                        double echo_amp);
@@ -22,7 +22,7 @@ class EchoHidingHCEmbedder : public Embedder<double> {
   bool embed() override;
 
  private:
-  EchoHidingHCEmbedder(InputBitStream& data,
+  EchoHidingHCEmbedder(InBitStream& data,
                        std::size_t frame_size,
                        std::size_t kernel_len,
                        double echo_amp);
@@ -56,7 +56,7 @@ class EchoHidingHCExtractor : public Extractor<double> {
  public:
   EchoHidingHCExtractor(std::size_t frame_size, unsigned echo_interval);
 
-  bool extract(OutputBitStream& data) override;
+  bool extract(OutBitStream& data) override;
 
  private:
   unsigned echo_interval;

@@ -9,7 +9,7 @@
 #define EMBEDDING_PWR_PCT 0.25
 #define OTHER_PWR_PCT 0.001
 
-ToneInsertionEmbedder::ToneInsertionEmbedder(InputBitStream& data,
+ToneInsertionEmbedder::ToneInsertionEmbedder(InBitStream& data,
                                              std::size_t frame_size,
                                              double samplerate,
                                              double freq_zero,
@@ -66,7 +66,7 @@ ToneInsertionExtractor::ToneInsertionExtractor(std::size_t frame_size,
 {
 }
 
-bool ToneInsertionExtractor::extract(OutputBitStream& data)
+bool ToneInsertionExtractor::extract(OutBitStream& data)
 {
   double avg_pwr = avg_power(in_frame);
 

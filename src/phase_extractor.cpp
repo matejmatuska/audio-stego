@@ -18,7 +18,7 @@ PhaseExtractor::PhaseExtractor(std::size_t frame_size,
 {
 }
 
-bool PhaseExtractor::extract(OutputBitStream& data)
+bool PhaseExtractor::extract(OutBitStream& data)
 {
   fft.exec();
   angle(dft, phases, in_frame.size());
@@ -27,7 +27,7 @@ bool PhaseExtractor::extract(OutputBitStream& data)
 }
 
 void PhaseExtractor::decodeBlock(const std::vector<double>& phases,
-                                 OutputBitStream& data)
+                                 OutBitStream& data)
 {
 #if 0
   for (int i = segment_size / 2; i >= 0; i--) {

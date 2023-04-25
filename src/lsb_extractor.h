@@ -13,13 +13,14 @@ class LSBExtractor : public Extractor<T> {
   {
   }
 
-  bool extract(OutputBitStream& data) override
+  bool extract(OutBitStream& data) override
   {
     for (std::size_t i = 0; i < this->in_frame.size(); i++) {
       typename std::make_unsigned<T>::type sample = this->in_frame[i];
 
-      for (unsigned i = 0; i < bits_per_frame; i++) {
-        bool bit = sample & ((unsigned)1 << i);
+      for (unsigned j = 0; j < bits_per_frame; j++) {
+        bool bit = sample & ((unsigned)1 << j);
+        //std::cerr <<  bit;
         data.output_bit(bit);
       }
     }

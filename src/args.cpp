@@ -11,7 +11,7 @@
   }
 
 #define REQUIRE_OPT_ARG(opt)                                       \
-  if (++i >= argc || argv[i][0] == '-') {                          \
+  if (++i >= argc) {                                               \
     throw std::invalid_argument("missing argument for: " + (opt)); \
   }
 
@@ -25,7 +25,6 @@ static void parse_opts(struct args& args,
 
 struct args parse_args(int argc, char* argv[])
 {
-  struct args args;
   if (argc < 2) {
     throw std::invalid_argument("No command specified");
   }
@@ -35,15 +34,16 @@ struct args parse_args(int argc, char* argv[])
     throw std::invalid_argument("--help doesn't take arguments");
   }
 
+  struct args args;
   if (cmd == "embed") {
     string_set required{"-sf", "-cf", "-m"};
-    string_set allowed{"-mf", "-k"};
-    parse_opts(args, argc, argv, required, allowed);
+    string_set optional{"-mf", "-k", "-l", "-e"};
+    parse_opts(args, argc, argv, required, optional);
 
   } else if (cmd == "extract") {
     string_set required{"-sf", "-m"};
-    string_set allowed{"-mf", "-k"};
-    parse_opts(args, argc, argv, required, allowed);
+    string_set optional{"-mf", "-k", "-l", "-e"};
+    parse_opts(args, argc, argv, required, optional);
   } else if (cmd == "info") {
     if (argc < 3) {
       throw std::invalid_argument(
@@ -51,9 +51,9 @@ struct args parse_args(int argc, char* argv[])
     }
 
     if (argc > 3) {
-      string_set allowed{"-k"};
+      string_set optional{"-k"};
       string_set required;
-      parse_opts(args, argc - 1, argv + 1, required, allowed);
+      parse_opts(args, argc - 1, argv + 1, required, optional);
     }
     args.coverfile = argv[2];
   } else {
@@ -90,6 +90,28 @@ string_map parse_key(const std::string& key)
     params[kv.at(0)] = kv.at(1);
   }
   return params;
+}
+
+unsigned long parse_limit(const char* limit_str)
+{
+  if (limit_str[0] == '-')
+    throw std::invalid_argument(
+        "argument -l expects positive integer argument");
+
+  unsigned long limit;
+  std::size_t pos;
+  try {
+    limit = std::stoul(limit_str, &pos);
+  } catch (const std::out_of_range& e) {
+    throw std::invalid_argument("length too big");
+  } catch (const std::invalid_argument& e) {
+    throw std::invalid_argument("argument expects a positive number: -l");
+  }
+
+  if (limit_str[pos] == 'b')
+    return limit;
+
+  return limit * 8;
 }
 
 static void parse_opts(struct args& args,
@@ -129,6 +151,11 @@ static void parse_opts(struct args& args,
     } else if (arg == "-mf") {
       REQUIRE_OPT_ARG(arg);
       args.msgfile = std::string(argv[i]);
+    } else if (arg == "-l") {
+      REQUIRE_OPT_ARG(arg);
+      args.limit = parse_limit(argv[i]);
+    } else if (arg == "-e") {
+      args.use_err_correction = true;
     } else {
       throw std::invalid_argument("unknown option: " + arg);
     }

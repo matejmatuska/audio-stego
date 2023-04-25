@@ -12,13 +12,13 @@ template <typename T>
 class Embedder {
  public:
 
-  Embedder(InputBitStream& input_data, std::size_t frame_size)
+  Embedder(InBitStream& input_data, std::size_t frame_size)
       : _frame_size(frame_size),
         in_frame(frame_size),
         out_frame(frame_size),
         data(input_data){};
 
-  Embedder(InputBitStream& data) : Embedder(data, DEF_FRAME_SIZE) {};
+  Embedder(InBitStream& data) : Embedder(data, DEF_FRAME_SIZE) {};
 
   /**
    * @return true if done embedding else false
@@ -36,7 +36,7 @@ class Embedder {
   std::size_t _frame_size;
   std::vector<T> in_frame;
   std::vector<T> out_frame;
-  InputBitStream& data;
+  InBitStream& data;
 };
 
 #endif

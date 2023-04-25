@@ -8,7 +8,7 @@
 template <class T>
 class LsbEmbedder : public Embedder<T> {
  public:
-  LsbEmbedder(InputBitStream& data, unsigned bits_per_frame)
+  LsbEmbedder(InBitStream& data, unsigned bits_per_frame)
       : Embedder<T>(data), bits_per_frame(bits_per_frame)
   {
   }
@@ -21,12 +21,12 @@ class LsbEmbedder : public Embedder<T> {
       // make room for embedded bits
       sample &= ((unsigned)~1 << bits_per_frame);
 
-      for (unsigned i = 0; i < bits_per_frame; i++) {
-        char bit = this->data.next_bit();
+      for (unsigned j = 0; j < bits_per_frame; j++) {
+        int bit = this->data.next_bit();
         if (bit == EOF) {
           return true;
         }
-        sample |= (unsigned)bit << i;
+        sample |= (unsigned)bit << j;
       }
 
       this->out_frame[i] = sample;
@@ -35,8 +35,6 @@ class LsbEmbedder : public Embedder<T> {
   }
 
  private:
-  char c = 0;
-  int data_bit = 0;
   unsigned bits_per_frame;
 };
 

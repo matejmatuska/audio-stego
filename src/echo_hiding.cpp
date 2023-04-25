@@ -10,7 +10,7 @@
 #define USE_SMOOTHING 1
 #define SMOOTHING_PCT 0.95 // TODO
 
-EchoHidingEmbedder::EchoHidingEmbedder(InputBitStream& data,
+EchoHidingEmbedder::EchoHidingEmbedder(InBitStream& data,
                                        std::size_t frame_size,
                                        double echo_amp,
                                        unsigned echo_delay_zero,
@@ -100,7 +100,7 @@ EchoHidingExtractor::EchoHidingExtractor(std::size_t frame_size,
 {
 }
 
-bool EchoHidingExtractor::extract(OutputBitStream& data)
+bool EchoHidingExtractor::extract(OutBitStream& data)
 {
   autocorrelate.exec();
 

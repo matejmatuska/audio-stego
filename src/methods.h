@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -67,9 +68,11 @@ class Params {
   ACCESSOR(double, d, std::stod);
 };
 
+class Method;
+
 class Method {
  public:
-  virtual embedder_variant make_embedder(InputBitStream& input) const = 0;
+  virtual embedder_variant make_embedder(InBitStream& input) const = 0;
   virtual extractor_variant make_extractor() const = 0;
   virtual ssize_t capacity(std::size_t samples) const = 0;
 };
@@ -77,7 +80,7 @@ class Method {
 class LSBMethod : public Method {
  public:
   LSBMethod(const Params& params);
-  embedder_variant make_embedder(InputBitStream& input) const override;
+  embedder_variant make_embedder(InBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -88,7 +91,7 @@ class LSBMethod : public Method {
 class PhaseMethod : public Method {
  public:
   PhaseMethod(const Params& params);
-  embedder_variant make_embedder(InputBitStream& input) const override;
+  embedder_variant make_embedder(InBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -101,7 +104,7 @@ class PhaseMethod : public Method {
 class EchoHidingMethod : public Method {
  public:
   EchoHidingMethod(const Params& params);
-  embedder_variant make_embedder(InputBitStream& input) const override;
+  embedder_variant make_embedder(InBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -115,7 +118,7 @@ class EchoHidingMethod : public Method {
 class ToneInsertionMethod : public Method {
  public:
   ToneInsertionMethod(const Params& params);
-  embedder_variant make_embedder(InputBitStream& input) const override;
+  embedder_variant make_embedder(InBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -129,7 +132,7 @@ class ToneInsertionMethod : public Method {
 class EchoHidingHCMethod : public Method {
  public:
   EchoHidingHCMethod(const Params& params);
-  embedder_variant make_embedder(InputBitStream& input) const override;
+  embedder_variant make_embedder(InBitStream& input) const override;
   extractor_variant make_extractor() const override;
   virtual ssize_t capacity(std::size_t samples) const override;
 
@@ -137,6 +140,22 @@ class EchoHidingHCMethod : public Method {
   std::size_t frame_size;
   unsigned echo_interval;
   double amp;
+};
+
+class MethodFactory {
+ public:
+  MethodFactory() = delete;
+
+  static std::vector<std::string> list_methods();
+
+  static std::unique_ptr<Method> create(const std::string& method_name,
+                                        const Params& params);
+
+ private:
+  using method_creator = std::unique_ptr<Method> (*)(const Params& params);
+  using creator_map = std::map<std::string, method_creator>;
+
+  static creator_map method_map;
 };
 
 #endif  // METHODS_H
