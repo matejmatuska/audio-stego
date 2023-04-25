@@ -7,14 +7,12 @@
 #include "processing.h"
 #include "util.h"
 
-#define ECHO_AMP_ZERO 0.4
-#define ECHO_AMP_ONE 0.4
-
 #define USE_SMOOTHING 1
 #define SMOOTHING_PCT 0.95 // TODO
 
 EchoHidingEmbedder::EchoHidingEmbedder(InputBitStream& data,
                                        std::size_t frame_size,
+                                       double echo_amp,
                                        unsigned echo_delay_zero,
                                        unsigned echo_delay_one)
     : Embedder<double>::Embedder(data, frame_size),
@@ -27,8 +25,8 @@ EchoHidingEmbedder::EchoHidingEmbedder(InputBitStream& data,
       conv_zero(in_frame, kernel_zero, echo_zero),
       conv_one(in_frame, kernel_one, echo_one)
 {
-  kernel_zero[echo_delay_zero - 1] = ECHO_AMP_ZERO;
-  kernel_one[echo_delay_one - 1] = ECHO_AMP_ONE;
+  kernel_zero[echo_delay_zero - 1] = echo_amp;
+  kernel_one[echo_delay_one - 1] = echo_amp;
 }
 
 template <class ForwardIt>

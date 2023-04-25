@@ -1,22 +1,14 @@
 #include <algorithm>
-#include <cassert>
+#include <array>
 #include <cmath>
 #include <complex>
 #include <iostream>
 #include <vector>
 
 #include "echo_hiding_hc.h"
+#include "embedder.h"
 #include "processing.h"
 #include "util.h"
-
-#define ECHO_AMP_POS 0.25
-#define ECHO_AMP_NEG -ECHO_AMP_POS
-
-#define ECHO_DISTANCE 80
-// probably the best around ECHO_DISTANCE / 2
-#define NEG_ECHO_OFFSET 40
-
-#define KERNEL_LEN 450
 
 #ifndef USE_SMOOTHING
 #define USE_SMOOTHING 1
@@ -24,7 +16,15 @@
 // the percentage of the the frame to use for transition
 #define SMOOTHING_PCT 0.25
 
-#define N_ECHOS 4
+static bool get_bits(std::array<int, N_ECHOS>& bits, InputBitStream& data)
+{
+  for (unsigned i = 0; i < bits.size(); i++) {
+    bits[i] = data.next_bit();
+    if (bits[i] == EOF)
+      return false;
+  }
+  return true;
+}
 
 static int distance_multiplier(bool bit_a, bool bit_b)
 {
@@ -34,47 +34,57 @@ static int distance_multiplier(bool bit_a, bool bit_b)
   return x + 1;
 }
 
-static void make_kernel(std::vector<double>& kernel,
-                        bool bit1,
-                        bool bit2,
-                        bool bit3,
-                        bool bit4)
+void EchoHidingHCEmbedder::make_kernel(std::vector<double>& kernel,
+                                       const std::array<int, N_ECHOS>& bits,
+                                       double amp)
 {
   // create echo
-  int delay = ECHO_DISTANCE * distance_multiplier(bit1, bit2);
-  kernel[delay - 1] = ECHO_AMP_POS;
+  int delay = echo_interval * distance_multiplier(bits[0], bits[1]);
+  kernel[delay - 1] = amp;
 
   // create negative echo
-  delay = NEG_ECHO_OFFSET + ECHO_DISTANCE * distance_multiplier(bit3, bit4);
-  kernel[delay - 1] = ECHO_AMP_NEG;
+  std::size_t neg_echo_offset = echo_interval / 2;
+  delay =
+      neg_echo_offset + echo_interval * distance_multiplier(bits[2], bits[3]);
+  kernel[delay - 1] = -amp;
 }
 
 EchoHidingHCEmbedder::EchoHidingHCEmbedder(InputBitStream& data,
-                                           std::size_t frame_size)
+                                           std::size_t frame_size,
+                                           std::size_t kernel_len,
+                                           double echo_amp)
     : Embedder<double>::Embedder(data, frame_size),
-      kernel(KERNEL_LEN, 0),
-      echo(pow(2, next_pow2(in_frame.size() + KERNEL_LEN - 1)), 0),
-      next_kernel(KERNEL_LEN, 0),
-      next_echo(pow(2, next_pow2(in_frame.size() + KERNEL_LEN - 1)), 0),
-      prev_kernel(KERNEL_LEN, 0),
-      prev_echo(pow(2, next_pow2(in_frame.size() + KERNEL_LEN - 1)), 0),
+      amp(echo_amp),
+      echo_interval(kernel_len / 9 * 2),
+      kernel(kernel_len, 0),
+      echo(pow(2, next_pow2(in_frame.size() + kernel_len - 1)), 0),
+      next_kernel(kernel_len, 0),
+      next_echo(pow(2, next_pow2(in_frame.size() + kernel_len - 1)), 0),
+      prev_kernel(kernel_len, 0),
+      prev_echo(pow(2, next_pow2(in_frame.size() + kernel_len - 1)), 0),
       mixer(frame_size, 0),
       conv(in_frame, kernel, echo),
       prev_conv(in_frame, prev_kernel, prev_echo),
       next_conv(in_frame, next_kernel, next_echo)
 {
-  update_mixer(0, 1);
-  // use so
-  prev_kernel[200] = ECHO_AMP_POS;
-  prev_kernel[350] = ECHO_AMP_NEG;
+}
 
-  // NOTE: cannot put directly into the function call because the order of
-  // parameter evaluation is not standardised
-  bool bit1 = data.next_bit();
-  bool bit2 = data.next_bit();
-  bool bit3 = data.next_bit();
-  bool bit4 = data.next_bit();
-  make_kernel(kernel, bit1, bit2, bit3, bit4);
+EchoHidingHCEmbedder::EchoHidingHCEmbedder(InputBitStream& data,
+                                           std::size_t frame_size,
+                                           unsigned echo_interval,
+                                           double echo_amp)
+    : EchoHidingHCEmbedder(data,
+                           frame_size,
+                           (std::size_t)echo_interval * 9 / 2,
+                           echo_amp)
+{
+  make_mixer();
+  // use some "random" echo as the previous
+  prev_kernel[2 * echo_interval] = amp;
+  prev_kernel[echo_interval / 2 + 3 * echo_interval] = -amp;
+
+  get_bits(bits, data);
+  make_kernel(kernel, bits, amp);
 }
 
 template <class ForwardIt>
@@ -88,7 +98,7 @@ static void sin_slope(ForwardIt first, ForwardIt last, double from, double to)
   }
 }
 
-void EchoHidingHCEmbedder::update_mixer(char bit_from, char bit_to)
+void EchoHidingHCEmbedder::make_mixer()
 {
   const int start = SMOOTHING_PCT * in_frame.size();
   const int end = mixer.size() - start;
@@ -101,29 +111,17 @@ void EchoHidingHCEmbedder::update_mixer(char bit_from, char bit_to)
   // make the slopes
   sin_slope(mixer.begin(), mixer.begin() + start, 0, sin_half);
   sin_slope(mixer.begin() + end, mixer.end(), sin_half, sin_end);
-
-  // std::cout << mixer[0] << std::endl;
-  // std::cout << mixer[start / 2] << std::endl;
-  // std::cout << mixer[start - 1] << std::endl;
-  // std::cout << mixer[start] << std::endl;
-  // std::cout << mixer[end - 1] << std::endl;
-  // std::cout << mixer[end] << std::endl;
-  // std::cout << mixer[end + start / 2] << std::endl;
-  // std::cout << mixer.back() << std::endl;
 }
 
 bool EchoHidingHCEmbedder::embed()
 {
-  // NOTE: cannot put directly into function call because the order of
-  // parameter evaluation is not standardised
-  bool bit1 = data.next_bit();
-  bool bit2 = data.next_bit();
-  bool bit3 = data.next_bit();
-  bool bit4 = data.next_bit();
+  if (!get_bits(bits, data))
+    return true;
 
   if (USE_SMOOTHING) {
     std::fill(next_kernel.begin(), next_kernel.end(), 0);
-    make_kernel(next_kernel, bit1, bit2, bit3, bit4);
+    make_kernel(next_kernel, bits, amp);
+
     prev_conv.exec();
     conv.exec();
     next_conv.exec();
@@ -141,17 +139,19 @@ bool EchoHidingHCEmbedder::embed()
     kernel = next_kernel;
   } else {
     std::fill(kernel.begin(), kernel.end(), 0);
-    make_kernel(kernel, bit1, bit2, bit3, bit4);
+    make_kernel(kernel, bits, amp);
     conv.exec();
     for (std::size_t i = 0; i < in_frame.size(); i++) {
       out_frame[i] = in_frame[i] + echo[i];
     }
   }
-  return false;  // TODO
+  return false;
 }
 
-EchoHidingHCExtractor::EchoHidingHCExtractor()
-    : Extractor<double>(),
+EchoHidingHCExtractor::EchoHidingHCExtractor(std::size_t frame_size,
+                                             unsigned echo_interval)
+    : Extractor<double>(frame_size),
+      echo_interval(echo_interval),
       // next power of two for faster FFT
       autocorrelation(pow(2, next_pow2(2 * in_frame.size() - 1))),
       autocorrelate(in_frame, autocorrelation)
@@ -165,7 +165,7 @@ bool EchoHidingHCExtractor::extract(OutputBitStream& data)
   // extract the first 2 bits from positive echo delay
   double pos_coefs[N_ECHOS];
   for (int i = 1; i <= N_ECHOS; i++) {
-    pos_coefs[i - 1] = autocorrelation[i * ECHO_DISTANCE - 1];
+    pos_coefs[i - 1] = autocorrelation[i * echo_interval - 1];
   }
   unsigned max_coef =
       distance(pos_coefs, max_element(pos_coefs, pos_coefs + N_ECHOS));
@@ -175,7 +175,8 @@ bool EchoHidingHCExtractor::extract(OutputBitStream& data)
   // extract the other 2 bits from negative echo delay
   double neg_coefs[N_ECHOS];
   for (int i = 1; i <= N_ECHOS; i++) {
-    neg_coefs[i - 1] = autocorrelation[NEG_ECHO_OFFSET + i * ECHO_DISTANCE - 1];
+    neg_coefs[i - 1] =
+        autocorrelation[echo_interval / 2 + i * echo_interval - 1];
   }
   unsigned min_coef =
       distance(neg_coefs, min_element(neg_coefs, neg_coefs + N_ECHOS));
