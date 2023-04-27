@@ -25,6 +25,9 @@
 
 BIN="../build/src/stego"
 PARAMS_FILE="./params.txt"
+_ARGS=${ARGS:-}
+
+
 
 COVERS_DIR=$1
 OUTPUT_DIR=$2
@@ -41,7 +44,8 @@ test_method() {
     local stego="$test_dir/out.wav"
     local out;
 
-    if ! "$BIN" embed -m "$method" -cf "$cover" -sf "$stego" -k "$params" < "$MSG_FILE"  2> "$test_dir/stderr.txt";
+    if ! "$BIN" embed -m "$method" -cf "$cover" -sf "$stego" $_ARGS -k "$params" \
+        < "$MSG_FILE"  2> "$test_dir/stderr.txt";
     then
         echo 1>&2 "Failed to embed to cover: $cover"
         return 1
@@ -50,7 +54,8 @@ test_method() {
     out="$method;$(./snr -db "$cover" "$stego")"
 
     mkdir -p "$test_dir/extract"
-    if ! "$BIN" extract -m "$method" -sf "$stego" -k "$params" > "$test_dir/extract/stdout.txt" 2> "$test_dir/extract/stderr.txt";
+    if ! "$BIN" extract -m "$method" -sf "$stego" $_ARGS -k "$params" \
+        > "$test_dir/extract/stdout.txt" 2> "$test_dir/extract/stderr.txt";
     then
         echo 1>&2 "Failed to extract from stego: $stego"
         return 1
@@ -65,17 +70,20 @@ test_method() {
     mkdir -p "$test_dir/resample"
     sox "$stego" "$test_dir/resample/tmp.wav" downsample
     sox "$test_dir/resample/tmp.wav" "$test_dir/resample/out.wav" upsample
-    "$BIN" extract -m "$method" -sf "$test_dir/resample/out.wav" -k "$params" > "$test_dir/resample/stdout.txt" 2> "$test_dir/resample/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/resample/out.wav" $_ARGS -k "$params" \
+        > "$test_dir/resample/stdout.txt" 2> "$test_dir/resample/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/resample/stdout.txt")"
 
     mkdir -p "$test_dir/amplify"
     sox "$stego" "$test_dir/amplify/out.wav" vol 3dB
-    "$BIN" extract -m "$method" -sf "$test_dir/amplify/out.wav" -k "$params" > "$test_dir/amplify/stdout.txt" 2> "$test_dir/amplify/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/amplify/out.wav" $_ARGS -k "$params" \
+        > "$test_dir/amplify/stdout.txt" 2> "$test_dir/amplify/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/amplify/stdout.txt")"
 
     mkdir -p "$test_dir/attenuate"
     sox "$stego" "$test_dir/attenuate/out.wav" vol -3dB
-    "$BIN" extract -m "$method" -sf "$test_dir/attenuate/out.wav" -k "$params" > "$test_dir/attenuate/stdout.txt" 2> "$test_dir/attenuate/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/attenuate/out.wav" $_ARGS -k "$params" \
+        > "$test_dir/attenuate/stdout.txt" 2> "$test_dir/attenuate/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/attenuate/stdout.txt")"
 
     local bit_depth
@@ -85,7 +93,8 @@ test_method() {
         mkdir -p "$test_dir/less_bits"
         sox "$stego" -b "$target_bits" "$test_dir/less_bits/tmp.wav"
         sox "$test_dir/less_bits/tmp.wav" -b "$bit_depth" "$test_dir/less_bits/out.wav"
-        "$BIN" extract -m "$method" -sf "$test_dir/less_bits/out.wav" -k "$params" > "$test_dir/less_bits/stdout.txt" 2> "$test_dir/less_bits/stderr.txt"
+        "$BIN" extract -m "$method" -sf "$test_dir/less_bits/out.wav" $_ARGS -k "$params" \
+            > "$test_dir/less_bits/stdout.txt" 2> "$test_dir/less_bits/stderr.txt"
         out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/less_bits/stdout.txt")"
     else
         out+="N/A"
@@ -93,13 +102,15 @@ test_method() {
 
     mkdir -p "$test_dir/mp3-compress"
     sox "$stego" -C 128 "$test_dir/mp3-compress/out.mp3"
-    "$BIN" extract -m "$method" -sf "$test_dir/mp3-compress/out.mp3" -k "$params" > "$test_dir/mp3-compress/stdout.txt" 2> "$test_dir/mp3-compress/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/mp3-compress/out.mp3" $_ARGS -k "$params" \
+        > "$test_dir/mp3-compress/stdout.txt" 2> "$test_dir/mp3-compress/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/mp3-compress/stdout.txt")"
 
     mkdir -p "$test_dir/aac-compress"
     ffmpeg -y -i "$stego" -c:a aac -b:a 128k "$test_dir/aac-compress/out.m4a"
     ffmpeg -y -i "$test_dir/aac-compress/out.m4a" "$test_dir/aac-compress/out.wav"
-    "$BIN" extract -m "$method" -sf "$test_dir/aac-compress/out.wav" -k "$params" > "$test_dir/aac-compress/stdout.txt" 2> "$test_dir/aac-compress/stderr.txt"
+    "$BIN" extract -m "$method" -sf "$test_dir/aac-compress/out.wav" $_ARGS -k "$params" \
+        > "$test_dir/aac-compress/stdout.txt" 2> "$test_dir/aac-compress/stderr.txt"
     out+=";$(./ber "$test_dir/extract/stdout.txt" "$test_dir/aac-compress/stdout.txt")"
 
     type="${cover##*/}" # strip path
