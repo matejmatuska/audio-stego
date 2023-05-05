@@ -17,6 +17,13 @@ METHOD_NAME_MAP = {'lsb': 'Substitúcia najnižšieho bitu',
                    'tone': 'Vkladanie tónu',
                    }
 
+METHOD_ORDER = ['Substitúcia najnižšieho bitu',
+                'Kódovanie vo fáze',
+                'Vkladanie tónu',
+                'Vkladanie ozveny',
+                'Navrhnutá metóda',
+                ]
+
 
 def load_data(filename: str) -> pd.DataFrame:
     return pd.read_csv(
@@ -42,16 +49,19 @@ def _plot_snr(df: pd.DataFrame):
     plt.show()
 
 
-def plot_ber(df: pd.DataFrame, save_fig=False):
-    df = df.drop('snr', axis=1)
-    df = df.drop('params', axis=1)
-    df = df.drop('type', axis=1)
+def plot_ber(df: pd.DataFrame, save_fig=False, filename='ber.pdf'):
+    _df = df.drop('snr', axis=1)
+    _df = _df.drop('params', axis=1)
+    _df = _df.drop('type', axis=1)
 
-    df = df.melt(['method'], var_name='cols', value_name='vals')
+    grouped = _df.groupby(['method']).mean()
+    print(grouped)
+    _df = _df.melt(['method'], var_name='cols', value_name='vals')
 
-    plt.figure(figsize=(7, 5))
+    plt.figure(figsize=(7, 4))
 
-    ax = sns.barplot(x='method', y='vals', hue='cols', data=df, errorbar=None)
+    ax = sns.barplot(x='method', y='vals', hue='cols',
+                     data=_df, order=METHOD_ORDER, errorbar=None)
     ax.get_yaxis().set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
     ax.get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
     ax.grid(visible=True, which='major', linewidth=0.8, axis='y', aa=True)
@@ -67,7 +77,7 @@ def plot_ber(df: pd.DataFrame, save_fig=False):
 
     if (save_fig):
         plt.tight_layout()
-        plt.savefig('ber.pdf')
+        plt.savefig(filename)
         plt.clf()
     else:
         plt.show()
@@ -79,11 +89,22 @@ def plot_ber_by_type(df, save_fig=False):
 
     df = df.melt(['method', 'type'], var_name='cols', value_name='vals')
 
-    g = sns.catplot(x='method', y='vals', hue='cols',
-                    col='type', data=df, kind='bar', legend_out=True)
-    g._legend.set_title('')
+    plt.figure(figsize=(6, 12))
+    g = sns.catplot(x='method', y='vals', hue='cols', errorbar=None, col_wrap=1,
+                    col='type', data=df, kind='bar', order=METHOD_ORDER, legend_out=False)
+    for ax in g.axes.flat:
+        ax.get_yaxis().set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+        ax.get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+        ax.grid(visible=True, which='major', linewidth=0.8, axis='y', aa=True)
+        ax.grid(visible=True, which='minor', linewidth=0.4,
+                axis='y', linestyle='--', aa=True)
 
-    g.set_axis_labels("Metóda", "Bit Error Rate")
+        ax.set(xlabel='Metóda', ylabel='Bitová chybovosť')
+
+        labels = [textwrap.fill(label.get_text(), 11)
+                  for label in ax.get_xticklabels()]
+        ax.set_xticklabels(labels)
+        sns.move_legend(g, "upper left", bbox_to_anchor=(.55, .45), title='')
     if (save_fig):
         plt.savefig('ber_by_type.pdf')
     else:
@@ -110,7 +131,8 @@ def plot_snr_by_type(df, save_fig=False):
     # df = df.reset_index()
 
     plt.figure(figsize=(7, 4))
-    ax = sns.barplot(x='method', y='snr', hue='type', data=df, errorbar='sd')
+    ax = sns.barplot(x='method', y='snr', hue='type', data=df,
+                     errorbar='sd', order=METHOD_ORDER)
     ax.set(xlabel='Metóda', ylabel='Pomer signálu a šumu [dB]')
 
     labels = [textwrap.fill(label.get_text(), 11)
@@ -139,19 +161,19 @@ def plot_used_capacity_dep_length(save_fig=False):
     df['echo'] = pd.Series(df.samples // 4096)
     df['echo-hc'] = pd.Series(df.samples // 4096 * 4)
     df['lsb'] = df.samples * 2
-    df['tone'] = pd.Series(df.samples // 2048)
+    df['tone'] = pd.Series(df.samples // 1024)
 
     df.rename(columns=METHOD_NAME_MAP, inplace=True)
 
     df = df.melt(['samples', 'duration'],
                  var_name='Metóda', value_name='vals')
 
-    print(df)
     df['vals'] = df['vals'].astype(int)
 
     sns.set_style('whitegrid')
 
     plt.figure(figsize=(6, 4))
+    # TODO order
     ax = sns.lineplot(data=df, x='duration', y='vals', hue='Metóda')
     ax.set(xlabel='Dĺžka signálu [s]', ylabel='Kapacita')
     ax.margins(x=0)
@@ -204,9 +226,7 @@ def plot_capacity_dep_length():
         x['cols'], x['framesize']), axis=1)
 
     df = df[(df.meaning == 'chosen') | df.framesize.isin((512, 8192))]
-    print(df)
     # df = df[~((df.cols == 'lsb') & (df.framesize != 'chosen'))]
-    print(df)
 
     df['vals'] = df['vals'].astype(int)
 
@@ -236,10 +256,8 @@ def plot_capacity():
     df['echo-hc'] = pd.Series(samples / x * 4)
     df['lsb'] = samples
 
-    print(df)
     df = df.melt(['framesize'], var_name='Metóda', value_name='capacity')
 
-    print(df)
     dashmap = {'tone': (5, 5, 10, 0), 'echo': (10, 10),
                'lsb': '', 'echo-hc': '', 'phase': ''}
     ax = sns.lineplot(data=df, x='framesize', y='vals',
@@ -281,10 +299,10 @@ def plot_mos(save_fig):
         {'music': 'Hudba', 'noise': 'Zvuky', 'speech': 'Reč'})
 
     df['method'] = df['method'].map(METHOD_NAME_MAP)
-    print(df)
 
     plt.figure(figsize=(6, 3))
-    ax = sns.barplot(x='method', y='score', hue='type', data=df, errorbar='sd')
+    ax = sns.barplot(x='method', y='score', hue='type',
+                     data=df, errorbar='sd', order=METHOD_ORDER)
 
     ax.set_ylim([1, 4])
     ax.get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
@@ -331,7 +349,7 @@ if __name__ == "__main__":
         df['type'] = df['type'].map(
             {'music': 'Hudba', 'noise': 'Zvuky', 'speech': 'Reč'})
 
-        save_fig = False
+        save_fig = True
         sns.set_style('whitegrid')
         sns.set_context('paper')
         plot_used_capacity_dep_length(save_fig)
@@ -339,4 +357,9 @@ if __name__ == "__main__":
         plot_snr_by_type(df, save_fig)
         plot_mos(save_fig)
         plot_ber(df, save_fig)
+        if False:
+            for t in ('Hudba', 'Zvuky', 'Reč'):
+                tdf = df.loc[df['type'] == t]
+                plot_ber(tdf, save_fig, 'ber_' + t + '.pdf')
+
         #plot_ber_by_type(df, save_fig)

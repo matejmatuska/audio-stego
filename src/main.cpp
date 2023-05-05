@@ -68,6 +68,8 @@ class CoverFile {
       msg << stego.strError() << std::endl;
       throw IOException(msg.str());
     }
+    //cover.command(SFC_SET_NORM_DOUBLE, NULL, SF_FALSE);
+    //cover.command(SFC_SET_NORM_DOUBLE, NULL, SF_FALSE);
 
     stego.command(SFC_SET_CLIPPING, NULL, SF_TRUE);
     std::vector<T> buffer(embedder.frame_size() * cover.channels());

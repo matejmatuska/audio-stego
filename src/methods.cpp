@@ -15,7 +15,7 @@
 
 LSBMethod::LSBMethod(const Params& params)
 {
-  bits_per_frame = params.get_or("lsbs", 2);
+  bits_per_frame = params.get_or("lsbs", 1);
   if (bits_per_frame == 0)
     throw std::invalid_argument("number of LSBs must be > 0");
 }
