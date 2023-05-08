@@ -1,3 +1,6 @@
+/**
+ * @file Utilities for digital signal processing
+ */
 #ifndef PROCESSING_H
 #define PROCESSING_H
 
@@ -7,6 +10,13 @@
 
 using namespace std;
 
+/**
+ * Demultiplex (deinterleave) a channel from interleaved signal.
+ * @param in The interleaved signal.
+ * @param chan The buffer for the retrieved channel.
+ * @param chan The number of the channel to retrieve.
+ * @param chan The total number of channels in the input signal.
+ */
 template <typename T>
 void demultiplex(const std::vector<T>& in,
                  std::vector<T>& chan,
@@ -19,6 +29,13 @@ void demultiplex(const std::vector<T>& in,
   }
 }
 
+/**
+ * Multiplex (interleave) channel into signal.
+ * @param chan The channel to interleave.
+ * @param out The signal to interleave.
+ * @param chan The number of the channel to interleave.
+ * @param chan The total number of channels in the input signal.
+ */
 template <typename T>
 void multiplex(const std::vector<T>& chan,
                std::vector<T>& out,

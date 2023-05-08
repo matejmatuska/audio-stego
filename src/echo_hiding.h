@@ -1,3 +1,6 @@
+/**
+ * @file Classes implementing the echo hiding method.
+ */
 #ifndef ECHO_HIDING_H
 #define ECHO_HIDING_H
 
@@ -6,6 +9,22 @@
 #include "embedder.h"
 #include "extractor.h"
 #include "fft.h"
+#include "ifft.h"
+#include "methods.h"
+
+class EchoHidingMethod : public Method {
+ public:
+  EchoHidingMethod(const Params& params);
+  embedder_variant make_embedder(InBitStream& input) const override;
+  extractor_variant make_extractor() const override;
+  virtual ssize_t capacity(std::size_t samples) const override;
+
+ protected:
+  std::size_t frame_size;
+  unsigned delay0;
+  unsigned delay1;
+  double amp;
+};
 
 class EchoHidingEmbedder : public Embedder<double> {
  public:
@@ -27,7 +46,6 @@ class EchoHidingEmbedder : public Embedder<double> {
   std::vector<double> echo_zero;
   std::vector<double> echo_one;
   std::vector<double> mixer;
-
 
   Conv conv_zero;
   Conv conv_one;

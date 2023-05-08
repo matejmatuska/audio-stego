@@ -2,30 +2,42 @@
 #define AUTOCORRELATION_H
 
 #include <vector>
+
 #include "fft.h"
+#include "ifft.h"
 
-using namespace std;
-
+/**
+ * @brief The algorithm for computing the autocepstrum.
+ *
+ * This algorithm computes the real autocepstrum -- the real cepstrum of
+ * an autocorrelation of a signal.
+ */
 class Autocepstrum {
  public:
   /**
-   * Constructs a new Autocorrelation object
-   *
-   * @param in The signal to autocorrelate
-   * @param out The output vector, size must be at least 2 * in.size() - 1
+   * @brief Constructor.
+   * Create a new Autocepstrum object with the associated input and output
+   * buffers. The size of the output buffer must be at least 2 * in.size() - 1.
+   * @param in The input signal buffer.
+   * @param out The output buffer,
    */
-  Autocepstrum(vector<double>& in, vector<double>& out);
+  Autocepstrum(std::vector<double>& in, std::vector<double>& out);
 
+  /**
+   * @brief Computes the autocepstrum.
+   * Computes the autocepstrum of the signal in input buffer. The output is
+   * written to output buffer.
+   */
   void exec();
 
  private:
-  const vector<double>* in;
-  vector<double>* out;
+  const std::vector<double>* in;
+  std::vector<double>* out;
 
   size_t padded_size;
-  vector<double> padded_in;
+  std::vector<double> padded_in;
 
-  vector<complex<double>> dft;
+  std::vector<std::complex<double>> dft;
 
   FFT fft;
   IFFT ifft;

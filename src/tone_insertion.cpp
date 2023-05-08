@@ -3,11 +3,46 @@
 #include <cstdio>
 #include <vector>
 
-#include "processing.h"
+#include "dsp_utils.h"
 #include "tone_insertion.h"
+#include "util.h"
 
 #define EMBEDDING_PWR_PCT 0.25
 #define OTHER_PWR_PCT 0.001
+
+ToneInsertionMethod::ToneInsertionMethod(const Params& params)
+{
+  frame_size = params.get_or("framesize", 1024);
+  if (!is_pow2(frame_size))
+    throw std::invalid_argument("framesize must be a power of 2");
+
+  samplerate = params.get_ul("samplerate");
+
+  freq0 = params.get_or("freq0", 1875);
+  if (freq0 > samplerate / 2)
+    throw std::invalid_argument("freq0 must be lower than samplerate / 2");
+
+  freq1 = params.get_or("freq1", 2625);
+  if (freq1 > samplerate / 2)
+    throw std::invalid_argument("freq1 must be lower than samplerate / 2");
+}
+
+embedder_variant ToneInsertionMethod::make_embedder(InBitStream& input) const
+{
+  return make_unique<ToneInsertionEmbedder>(input, frame_size, samplerate,
+                                            freq0, freq1);
+}
+
+extractor_variant ToneInsertionMethod::make_extractor() const
+{
+  return make_unique<ToneInsertionExtractor>(frame_size, samplerate, freq0,
+                                             freq1);
+}
+
+ssize_t ToneInsertionMethod::capacity(std::size_t samples) const
+{
+  return std::round(samples / (double)frame_size);
+}
 
 ToneInsertionEmbedder::ToneInsertionEmbedder(InBitStream& data,
                                              std::size_t frame_size,

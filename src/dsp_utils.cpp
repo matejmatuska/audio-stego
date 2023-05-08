@@ -1,7 +1,7 @@
 #include <cmath>
 #include <complex>
 
-#include "processing.h"
+#include "dsp_utils.h"
 
 void amplitude(std::complex<double>* dft, double* amp, unsigned N)
 {

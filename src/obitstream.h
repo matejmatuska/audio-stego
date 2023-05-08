@@ -6,12 +6,30 @@
 
 #include "bitvector.h"
 
+/**
+ * @brief Output stream of bits.
+ */
 class OutBitStream {
  public:
+  /**
+   * @brief Put bit into the stream.
+   * If the stream is at the end nothing is done.
+   * @param bit The bit to put to the stream.
+   */
   inline virtual void output_bit(bool bit) = 0;
 
+  /**
+   * @brief Query the current EOF status.
+   * Returns true if the stream is at the end, else false.
+   * @return The current EOF status.
+   */
   virtual bool eof() const = 0;
 
+  /**
+   * @brief Creates a new stream outputting to std::ostream byte stream.
+   * The bits in individual bytes are written from least to most significant.
+   * @param os The output byte stream
+   */
   static std::unique_ptr<OutBitStream> to_ostream(std::ostream& os)
   {
     class ToOstream : public OutBitStream {
@@ -74,39 +92,6 @@ class LimitedOutBitStream : public OutBitStream {
   std::shared_ptr<OutBitStream> in;
   std::size_t limit;
   std::size_t count = 0;
-};
-
-class HammingOutBitStream : public OutBitStream {
- public:
-  HammingOutBitStream(std::shared_ptr<OutBitStream> in) : in(std::move(in)) {}
-
-  inline virtual void output_bit(bool bit) override
-  {
-    if (i == 7) {  // buffer full
-      bool s3 = buff[3] ^ buff[2] ^ buff[1] ^ buff[0];
-      bool s2 = buff[5] ^ buff[4] ^ buff[1] ^ buff[0];
-      bool s1 = buff[6] ^ buff[4] ^ buff[2] ^ buff[0];
-      int s = s3 * 4 + s2 * 2 + s1;
-
-      if (s) {  // fix error
-        buff[7 - s] = ~buff[7 - s];
-      }
-
-      in->output_bit(buff[0]);
-      in->output_bit(buff[1]);
-      in->output_bit(buff[2]);
-      in->output_bit(buff[4]);
-      i = 0;
-    }
-    buff[i++] = bit;
-  }
-
-  virtual bool eof() const override { return in->eof() && i == 0; }
-
- private:
-  std::shared_ptr<OutBitStream> in;
-  std::bitset<8> buff;
-  int i = 0;
 };
 
 #endif  // OBITSTREAM_H

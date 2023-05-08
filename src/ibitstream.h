@@ -7,12 +7,30 @@
 
 #include "bitvector.h"
 
+/**
+ * @brief Input stream of bits.
+ */
 class InBitStream {
  public:
+  /**
+   * @brief Retrieve the next bit in the stream.
+   * If there are no more bits in the stream, EOF is returned.
+   * @return The next bit in the stream or EOF.
+   */
   inline virtual int next_bit() = 0;
 
+  /**
+   * @brief Query the current EOF status.
+   * Returns true if the stream is at the end, else false.
+   * @return The current EOF status.
+   */
   virtual bool eof() const = 0;
 
+  /**
+   * @brief Creates a new stream from std::istream byte stream.
+   * The bits in individual bytes are read from least to most significant.
+   * @param is The input byte stream
+   */
   static std::unique_ptr<InBitStream> from_istream(std::istream& is)
   {
     class FromIstream : public InBitStream {
@@ -80,41 +98,6 @@ class LimitedInBitStream : public InBitStream {
   std::shared_ptr<InBitStream> in;
   std::size_t limit;
   std::size_t count = 0;
-};
-
-class HammingInBitStream : public InBitStream {
- public:
-  HammingInBitStream(std::shared_ptr<InBitStream> in) : in(in) {}
-
-  inline virtual int next_bit() override
-  {
-    if (eof())
-      return EOF;
-
-    // fill the buff
-    if (i >= 7) {
-      buff[0] = in->next_bit();
-      buff[1] = in->next_bit();
-      buff[2] = in->next_bit();
-      buff[4] = in->next_bit();
-      if (in->eof())
-        return EOF;
-      i = 0;
-    }
-
-    buff[3] = buff[0] ^ buff[1] ^ buff[2];
-    buff[5] = buff[0] ^ buff[1] ^ buff[4];
-    buff[6] = buff[0] ^ buff[2] ^ buff[4];
-
-    return buff[i++];
-  }
-
-  virtual bool eof() const override { return in->eof() && i >= 7; };
-
- private:
-  std::shared_ptr<InBitStream> in;
-  std::bitset<8> buff;
-  int i = 7;
 };
 
 #endif  // IBITSTREAM_H

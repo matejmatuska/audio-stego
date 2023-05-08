@@ -2,11 +2,44 @@
 #include <string>
 #include <vector>
 
-#include "phase_embedder.h"
-#include "processing.h"
+#include "dsp_utils.h"
+#include "phase_coding.h"
+#include "util.h"
 
 #define MODULE 12
 #define STEP (M_PI / MODULE)
+
+PhaseMethod::PhaseMethod(const Params& params)
+{
+  frame_size = params.get_or("framesize", 1024);
+  if (!is_pow2(frame_size))
+    throw std::invalid_argument("framesize must be a power of 2");
+
+  unsigned int samplerate = params.get_ul("samplerate");
+
+  bin_from = freq_to_bin(1000, samplerate, frame_size);
+  bin_to = freq_to_bin(8000, samplerate, frame_size);
+
+  if (!(bin_from < bin_to)) {
+    throw std::invalid_argument(
+        "\"from\" frequency must be lower than \"to\" frequency");
+  }
+};
+
+embedder_variant PhaseMethod::make_embedder(InBitStream& input) const
+{
+  return make_unique<PhaseEmbedder>(input, frame_size, bin_from, bin_to);
+}
+
+extractor_variant PhaseMethod::make_extractor() const
+{
+  return make_unique<PhaseExtractor>(frame_size, bin_from, bin_to);
+}
+
+ssize_t PhaseMethod::capacity([[maybe_unused]] std::size_t samples) const
+{
+  return bin_to - bin_from;
+}
 
 PhaseEmbedder::PhaseEmbedder(InBitStream& data,
                              std::size_t frame_size,
@@ -125,4 +158,39 @@ bool PhaseEmbedder::embed()
 
   // all blocks need to be modified (phase shifted)
   return false;
+}
+
+PhaseExtractor::PhaseExtractor(std::size_t frame_size,
+                               std::size_t bin_from,
+                               std::size_t bin_to)
+    : Extractor<double>(frame_size),
+      bin_from(bin_from),
+      bin_to(bin_to),
+      phases(in_frame.size()),
+      dft(in_frame.size()),
+      fft(in_frame.size(), in_frame, dft)
+{
+}
+
+bool PhaseExtractor::extract(OutBitStream& data)
+{
+  fft.exec();
+  angle(dft, phases, in_frame.size());
+  decodeBlock(phases, data);
+  return false;  // information is only in the first frame
+}
+
+void PhaseExtractor::decodeBlock(const std::vector<double>& phases,
+                                 OutBitStream& data)
+{
+#if 0
+  for (int i = segment_size / 2; i >= 0; i--) {
+     data.output_bit(phases[i] > 0);
+  }
+#else
+  for (unsigned i = bin_from; i < bin_to && i < phases.size() / 2 + 1; i++) {
+    int module = std::round(phases[i] / (STEP / 2));
+    data.output_bit(module % 2 == 0);
+  }
+#endif
 }

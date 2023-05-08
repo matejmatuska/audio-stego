@@ -5,9 +5,9 @@
 #include <iostream>
 #include <vector>
 
+#include "dsp_utils.h"
 #include "echo_hiding_hc.h"
 #include "embedder.h"
-#include "processing.h"
 #include "util.h"
 
 #ifndef USE_SMOOTHING
@@ -15,6 +15,40 @@
 #endif
 // the percentage of the the frame to use for transition
 #define SMOOTHING_PCT 0.25
+
+EchoHidingHCMethod::EchoHidingHCMethod(const Params& params)
+{
+  frame_size = params.get_or("framesize", 4096);
+  if (!is_pow2(frame_size))
+    throw std::invalid_argument("framesize must be a power of 2");
+
+  amp = params.get_or("amp", 0.4);
+  if (amp <= 0)
+    throw std::invalid_argument("amp must be positive");
+
+  echo_interval = params.get_or("interval", 50);
+  if (frame_size < echo_interval * 10) {
+    throw std::invalid_argument(
+        "echo interval must be smaller than " +
+        std::to_string((unsigned)std::floor(frame_size / 10)));
+  }
+}
+
+embedder_variant EchoHidingHCMethod::make_embedder(InBitStream& input) const
+{
+  return make_unique<EchoHidingHCEmbedder>(input, frame_size, echo_interval,
+                                           amp);
+}
+
+extractor_variant EchoHidingHCMethod::make_extractor() const
+{
+  return make_unique<EchoHidingHCExtractor>(frame_size, echo_interval);
+}
+
+ssize_t EchoHidingHCMethod::capacity(std::size_t samples) const
+{
+  return std::round(samples / (double)frame_size) * 4;
+}
 
 static bool get_bits(std::array<int, N_ECHOS>& bits, InBitStream& data)
 {

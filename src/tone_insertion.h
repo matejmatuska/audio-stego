@@ -1,11 +1,30 @@
+/**
+ * @file Classes implementing the tone insertion method.
+ */
 #ifndef TONE_INSERTION_H
 #define TONE_INSERTION_H
 
 #include <cstddef>
 
+#include "methods.h"
 #include "embedder.h"
 #include "extractor.h"
 #include "fft.h"
+#include "ifft.h"
+
+class ToneInsertionMethod : public Method {
+ public:
+  ToneInsertionMethod(const Params& params);
+  embedder_variant make_embedder(InBitStream& input) const override;
+  extractor_variant make_extractor() const override;
+  virtual ssize_t capacity(std::size_t samples) const override;
+
+ protected:
+  std::size_t frame_size;
+  unsigned freq0;
+  unsigned freq1;
+  unsigned samplerate;
+};
 
 class ToneInsertionEmbedder : public Embedder<double> {
  public:

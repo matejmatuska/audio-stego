@@ -6,39 +6,41 @@
 
 #include <fftw3.h>
 
-using namespace std;
-
+/**
+ * @brief The FFT algorithm.
+ */
 class FFT {
  public:
   // TODO remove N
-  FFT(unsigned N, vector<double>& in, vector<complex<double>>& out);
+  /**
+   * @brief Constructor.
+   * @param N The length of the input frame / number of frequency bins.
+   * @param in The input buffer with real data.
+   * @param out The output buffer with complex data.
+   */
+  FFT(unsigned N,
+      std::vector<double>& in,
+      std::vector<std::complex<double>>& out);
 
+  /**
+   * @brief Run the FFT algorithm.
+   *
+   * The algorithm takes input in the input buffer and
+   * writes the DFT coefficients to the output buffer.
+   */
   void exec();
 
+  /**
+   * @brief Destructor.
+   */
   ~FFT();
 
  private:
   unsigned N;
   fftw_plan plan;
 
-  vector<double>* in;
-  vector<complex<double>>* out;
-};
-
-class IFFT {
- public:
-  IFFT(unsigned N, vector<complex<double>>& in, vector<double>& out);
-
-  void exec();
-
-  ~IFFT();
-
- private:
-  unsigned N;
-  fftw_plan plan;
-
-  vector<complex<double>>* in;
-  vector<double>* out;
+  std::vector<double>* in;
+  std::vector<std::complex<double>>* out;
 };
 
 #endif

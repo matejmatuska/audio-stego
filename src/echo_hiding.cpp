@@ -4,11 +4,47 @@
 #include <vector>
 
 #include "echo_hiding.h"
-#include "processing.h"
+#include "dsp_utils.h"
 #include "util.h"
 
 #define USE_SMOOTHING 1
 #define SMOOTHING_PCT 0.95 // TODO
+                           //
+EchoHidingMethod::EchoHidingMethod(const Params& params)
+{
+  frame_size = params.get_or("framesize", 4096);
+  if (!is_pow2(frame_size))
+    throw std::invalid_argument("framesize must be a power of 2");
+
+  delay0 = params.get_or("delay0", 250);
+  if (delay0 > frame_size)
+    throw std::invalid_argument("delay0 must be smaller than framesize");
+
+  delay1 = params.get_or("delay1", 300);
+  if (delay1 > frame_size)
+    throw std::invalid_argument("delay1 must be smaller than framesize");
+
+  amp = params.get_or("amp", 0.4);
+  if (amp <= 0)
+    throw std::invalid_argument("amp must be positive");
+}
+
+embedder_variant EchoHidingMethod::make_embedder(InBitStream& input) const
+{
+  return std::make_unique<EchoHidingEmbedder>(input, frame_size, amp, delay0,
+                                              delay1);
+}
+
+extractor_variant EchoHidingMethod::make_extractor() const
+{
+  return std::make_unique<EchoHidingExtractor>(frame_size, delay0, delay1);
+}
+
+ssize_t EchoHidingMethod::capacity(std::size_t samples) const
+{
+  return std::round(samples / (double)frame_size);
+}
+
 
 EchoHidingEmbedder::EchoHidingEmbedder(InBitStream& data,
                                        std::size_t frame_size,

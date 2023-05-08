@@ -8,29 +8,76 @@
 
 #define DEF_FRAME_SIZE 4096
 
+// TODO document typename T
+/**
+ * @brief The base class for embedding algorithms.
+ *
+ * Any required buffers and required algorithms, such as FFT, should be
+ * contained in instances of this class.
+ */
 template <typename T>
 class Embedder {
  public:
-  Embedder(InBitStream& input_data, std::size_t frame_size)
+  /**
+   * @brief Constructor.
+   *
+   * Constructs a new Embedder with the given frame size and data as the source
+   * bit stream.
+   * @param data The associated input bit stream.
+   * @param frame_size The size of input and output frames.
+   * @see Embedder(InBitStream& data)
+   */
+  Embedder(InBitStream& data, std::size_t frame_size)
       : _frame_size(frame_size),
         in_frame(frame_size),
         out_frame(frame_size),
-        data(input_data)
+        data(data)
   {
   }
 
+  /**
+   * @brief Constructor.
+   *
+   * Constructs a new Embedder with default frame size with data
+   * as the source bit stream.
+   * @param data The associated input bit stream.
+   */
   Embedder(InBitStream& data) : Embedder(data, DEF_FRAME_SIZE) {}
 
   /**
-   * @return true if done embedding else false
+   * @brief Embed data into current frame.
+   *
+   * Embed data from the associated input bit stream into input frame writing
+   * to the output frame. If the embedding shouldn't continue after this
+   * call, return true. For example, if the method only embeds into first frame.
+   * @return Whether the embedding is done
    */
   [[nodiscard]] virtual bool embed() = 0;
 
+  /**
+   * @brief Get input frame.
+   * @return Reference to the input frame.
+   */
   const std::vector<T>& input() const { return in_frame; }
-  const std::vector<T>& output() const { return out_frame; }
-  std::vector<T>& input() { return in_frame; }
-  std::vector<T>& output() { return out_frame; }
 
+  /**
+   * @brief Get output frame.
+   * @return Reference to the output frame.
+   */
+  const std::vector<T>& output() const { return out_frame; }
+
+  /**
+   * @brief Get non-const reference to the input frame.
+   *
+   * This is used to write into the input frame.
+   * @return Reference to the output frame.
+   */
+  std::vector<T>& input() { return in_frame; }
+
+  /**
+   * @brief Get the size of input and output frames.
+   * @return The size of input and output frames.
+   */
   std::size_t frame_size() const { return _frame_size; }
 
  protected:

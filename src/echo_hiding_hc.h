@@ -1,3 +1,6 @@
+/**
+ * @file Classes implementing the echo hiding high capacity method.
+ */
 #ifndef ECHO_HIDING_HC_H
 #define ECHO_HIDING_HC_H
 
@@ -9,8 +12,23 @@
 #include "embedder.h"
 #include "extractor.h"
 #include "fft.h"
+#include "ifft.h"
+#include "methods.h"
 
 #define N_ECHOS 4
+
+class EchoHidingHCMethod : public Method {
+ public:
+  EchoHidingHCMethod(const Params& params);
+  embedder_variant make_embedder(InBitStream& input) const override;
+  extractor_variant make_extractor() const override;
+  virtual ssize_t capacity(std::size_t samples) const override;
+
+ protected:
+  std::size_t frame_size;
+  unsigned echo_interval;
+  double amp;
+};
 
 class EchoHidingHCEmbedder : public Embedder<double> {
  public:

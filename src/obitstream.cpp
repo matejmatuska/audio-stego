@@ -1,5 +1,6 @@
-#include "obitstream.h"
 #include <memory>
+
+#include "obitstream.h"
 
 bool VectorOutBitStream::eof() const
 {

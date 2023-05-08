@@ -7,16 +7,21 @@ add_executable(${PROJECT_NAME}
     conv.cpp
     echo_hiding.cpp
     fft.cpp
-    phase_embedder.cpp
-    phase_extractor.cpp
-    processing.cpp
+    ifft.cpp
+    lsb_substitution.cpp
+    phase_coding.cpp
+    dsp_utils.cpp
     tone_insertion.cpp
-    methods.cpp
+    method_factory.cpp
+    hamminginbitstream.cpp
+    hammingoutbitstream.cpp
     bitvector.cpp
     ibitstream.cpp
     obitstream.cpp
     echo_hiding_hc.cpp
     util.cpp
+    stegofile.cpp
+    coverfile.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE -lsndfile -lfftw3)
