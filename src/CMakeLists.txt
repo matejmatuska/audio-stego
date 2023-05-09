@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME}
     dsp_utils.cpp
     tone_insertion.cpp
     method_factory.cpp
+    audioparams.cpp
     hamminginbitstream.cpp
     hammingoutbitstream.cpp
     bitvector.cpp

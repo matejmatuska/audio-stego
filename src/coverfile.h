@@ -42,7 +42,7 @@ class CoverFile {
   /**
    * @brief Returns the parameters of the audio file.
    */
-  AudioParams audio_params() const;
+  AudioParams audio_params();
 
   /**
    * @brief Embeds data into the file with the given embedder

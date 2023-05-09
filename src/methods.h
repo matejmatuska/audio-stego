@@ -27,11 +27,13 @@
 #include "embedder.h"
 #include "extractor.h"
 
+using integer_type = int;
+
 using embedder_variant = std::variant<std::unique_ptr<Embedder<double>>,
-                                      std::unique_ptr<Embedder<short>>>;
+                                      std::unique_ptr<Embedder<integer_type>>>;
 
 using extractor_variant = std::variant<std::unique_ptr<Extractor<double>>,
-                                       std::unique_ptr<Extractor<short>>>;
+                                       std::unique_ptr<Extractor<integer_type>>>;
 
 class Params {
  private:

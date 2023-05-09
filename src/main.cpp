@@ -1,3 +1,5 @@
+// TODO handle ec when info capacity
+// TODO handle more than 16bit files
 /*
  * Copyright (C) 2023 Matej Matuska
  *
@@ -19,20 +21,22 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "args.h"
+#include "audioparams.h"
 #include "coverfile.h"
 #include "embedder.h"
 #include "extractor.h"
 #include "hamminginbitstream.h"
 #include "hammingoutbitstream.h"
 #include "ibitstream.h"
+#include "ioexception.h"
 #include "method_factory.h"
 #include "methods.h"
 #include "obitstream.h"
 #include "stegofile.h"
-#include "ioexception.h"
 
 void print_fileinfo(SndfileHandle& file,
                     const std::string& filename,
@@ -77,6 +81,7 @@ void print_fileinfo(SndfileHandle& file,
   }
 }
 
+// TODO Copyright
 // TODO better help
 void print_help()
 {
@@ -108,6 +113,8 @@ bool embed_command(const struct args& args)
     Params params = parse_key(args.key);
     params.insert("samplerate",
                   std::to_string(coverfile.audio_params().samplerate));
+    params.insert("bit_depth",
+                  std::to_string(coverfile.audio_params().bit_depth));
 
     auto method = MethodFactory::create(args.method.value(), params);
 
@@ -153,6 +160,8 @@ bool extract_command(const struct args& args)
     Params params = parse_key(args.key);
     params.insert("samplerate",
                   std::to_string(stegofile.audio_params().samplerate));
+    params.insert("bit_depth",
+                  std::to_string(stegofile.audio_params().bit_depth));
 
     auto method = MethodFactory::create(args.method.value(), params);
     std::shared_ptr<OutBitStream> wrapped = OutBitStream::to_ostream(*output);
@@ -184,7 +193,9 @@ bool info_command(struct args& args)
   }
 
   Params params = parse_key(args.key);
-  params.insert("samplerate", std::to_string(file.samplerate()));
+  AudioParams aparams{file};
+  params.insert("samplerate", std::to_string(aparams.samplerate));
+  params.insert("bit_depth", std::to_string(aparams.bit_depth));
   print_fileinfo(file, args.coverfile.value(), params);
   return 1;
 }

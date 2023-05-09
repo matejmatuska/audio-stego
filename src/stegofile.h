@@ -30,7 +30,7 @@ class StegoFile {
  public:
   StegoFile(const std::string& filename);
 
-  AudioParams audio_params() const;
+  AudioParams audio_params();
 
   template <typename T>
   void extract(Extractor<T>& extractor, OutBitStream& output)
@@ -48,10 +48,10 @@ class StegoFile {
         if (output.eof())
           return;
 
-        should_continue = extractor.extract(output);
-        if (!should_continue)
-          break;
+        should_continue &= extractor.extract(output);
       }
+      if (!should_continue)
+        break;
     }
   }
 

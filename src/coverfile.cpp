@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
+#include <sndfile-64.h>
 #include <sstream>
 #include <string>
 
@@ -31,10 +32,7 @@ CoverFile::CoverFile(const std::string& filename) : cover(filename, SFM_READ)
   }
 };
 
-AudioParams CoverFile::audio_params() const
+AudioParams CoverFile::audio_params()
 {
-  AudioParams params{static_cast<unsigned int>(cover.samplerate()),
-                     static_cast<unsigned int>(cover.frames()),
-                     static_cast<unsigned int>(cover.channels())};
-  return params;
+  return AudioParams(cover);
 }

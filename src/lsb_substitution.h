@@ -26,6 +26,8 @@
 #include "extractor.h"
 #include "methods.h"
 
+#define BIT_WIDTH 16
+
 class LSBMethod : public Method {
  public:
   LSBMethod(const Params& params);
@@ -34,14 +36,15 @@ class LSBMethod : public Method {
   virtual ssize_t capacity(std::size_t samples) const override;
 
  protected:
+  int bit_depth;
   unsigned bits_per_frame;
 };
 
 template <class T>
 class LsbEmbedder : public Embedder<T> {
  public:
-  LsbEmbedder(InBitStream& data, unsigned bits_per_frame)
-      : Embedder<T>(data), bits_per_frame(bits_per_frame)
+  LsbEmbedder(InBitStream& data, unsigned bits_per_frame, unsigned bit_depth)
+      : Embedder<T>(data), bits_per_frame(bits_per_frame), bit_depth(bit_depth)
   {
   }
 
@@ -49,6 +52,8 @@ class LsbEmbedder : public Embedder<T> {
   {
     for (std::size_t i = 0; i < this->in_frame.size(); i++) {
       typename std::make_unsigned<T>::type sample = this->in_frame[i];
+
+      sample = sample >> bit_depth;
 
       // make room for embedded bits
       sample &= ((unsigned)~1 << bits_per_frame);
@@ -61,20 +66,21 @@ class LsbEmbedder : public Embedder<T> {
         sample |= (unsigned)bit << j;
       }
 
-      this->out_frame[i] = sample;
+      this->out_frame[i] = sample << bit_depth;
     }
     return false;
   }
 
  private:
   unsigned bits_per_frame;
+  unsigned bit_depth;
 };
 
 template <typename T>
 class LSBExtractor : public Extractor<T> {
  public:
-  LSBExtractor(unsigned bits_per_frame)
-      : Extractor<T>(), bits_per_frame(bits_per_frame)
+  LSBExtractor(unsigned bits_per_frame, unsigned bit_depth)
+      : Extractor<T>(), bits_per_frame(bits_per_frame), bit_depth(bit_depth)
   {
   }
 
@@ -82,6 +88,8 @@ class LSBExtractor : public Extractor<T> {
   {
     for (std::size_t i = 0; i < this->in_frame.size(); i++) {
       typename std::make_unsigned<T>::type sample = this->in_frame[i];
+
+      sample = sample >> bit_depth;
 
       for (unsigned j = 0; j < bits_per_frame; j++) {
         bool bit = sample & ((unsigned)1 << j);
@@ -94,6 +102,7 @@ class LSBExtractor : public Extractor<T> {
 
  private:
   unsigned bits_per_frame;
+  unsigned bit_depth;
 };
 
 #endif

@@ -31,10 +31,7 @@ StegoFile::StegoFile(const std::string& filename) : stego(filename, SFM_READ)
   }
 }
 
-AudioParams StegoFile::audio_params() const
+AudioParams StegoFile::audio_params()
 {
-  AudioParams params{static_cast<unsigned int>(stego.samplerate()),
-                     static_cast<unsigned int>(stego.frames()),
-                     static_cast<unsigned int>(stego.channels())};
-  return params;
+  return AudioParams(stego);
 }

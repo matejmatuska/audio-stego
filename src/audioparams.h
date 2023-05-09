@@ -17,10 +17,16 @@
 #ifndef AUDIOPARAMS_H
 #define AUDIOPARAMS_H
 
+#include <sndfile.hh>
+
 struct AudioParams {
+  AudioParams(SndfileHandle& file);
+
   unsigned samplerate;
   unsigned samples;
   unsigned channels;
+  int bit_depth;
 };
+
 
 #endif  //  AUDIOPARAMS_H

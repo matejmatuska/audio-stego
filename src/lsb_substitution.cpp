@@ -23,16 +23,22 @@ LSBMethod::LSBMethod(const Params& params)
   bits_per_frame = params.get_or("lsbs", 1);
   if (bits_per_frame == 0)
     throw std::invalid_argument("number of LSBs must be > 0");
+
+  bit_depth = params.get_i("bit_depth");
+  if (bit_depth == -1)
+    throw std::invalid_argument("lsb method works only with integer samples");
 }
 
 embedder_variant LSBMethod::make_embedder(InBitStream& input) const
 {
-  return std::make_unique<LsbEmbedder<short>>(input, bits_per_frame);
+  return std::make_unique<LsbEmbedder<int>>(input, bits_per_frame,
+                                                     bit_depth);
 }
 
 extractor_variant LSBMethod::make_extractor() const
 {
-  return std::make_unique<LSBExtractor<short>>(bits_per_frame);
+  return std::make_unique<LSBExtractor<int>>(bits_per_frame,
+                                                      bit_depth);
 }
 
 ssize_t LSBMethod::capacity(std::size_t samples) const
