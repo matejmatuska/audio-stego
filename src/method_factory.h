@@ -17,6 +17,7 @@
 #ifndef METHOD_FACTORY_H
 #define METHOD_FACTORY_H
 
+#include <vector>
 #include "methods.h"
 
 /**
@@ -41,9 +42,23 @@ class MethodFactory {
   static std::unique_ptr<Method> create(const std::string& method_name,
                                         const Params& params);
 
+  struct Param {
+    Param(const std::string name, const std::string description)
+        : name(name), description(description)
+    {
+    }
+    const std::string name;
+    const std::string description;
+  };
+
+  static const std::vector<Param>& get_method_params(const std::string& method);
+
  private:
+  struct Register;
+  friend Register;
+
   using method_creator = std::unique_ptr<Method> (*)(const Params& params);
-  using creator_map = std::map<std::string, method_creator>;
+  using creator_map = std::map<std::string, Register>;
 
   static creator_map method_map;
 };

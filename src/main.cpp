@@ -1,5 +1,3 @@
-// TODO handle ec when info capacity
-// TODO handle more than 16bit files
 /*
  * Copyright (C) 2023 Matej Matuska
  *
@@ -81,16 +79,52 @@ void print_fileinfo(SndfileHandle& file,
   }
 }
 
-// TODO Copyright
-// TODO better help
 void print_help()
 {
-  std::cout
-      << "Usage: "
-      << "stego embed -m method -cf coverfile -sf stegofile [-mf "
-         "messagefile]\n"
-      << "       stego extract -m method -sf stegofile [-mf messagefile]\n"
-      << "       stego info <filename>\n";
+  std::cout << "Usage: "
+               "stego embed -m method -cf coverfile -sf stegofile [-mf "
+               "messagefile] [-k key] [-e] [-l limit]\n"
+               "       stego extract -m method -sf stegofile [-mf messagefile] "
+               "[-k key] [-e] [-l limit]\n"
+               "       stego info <filename> [-k key]\n"
+               "\n"
+               "Options:\n"
+               "       -cf   The cover file\n"
+               "       -sf   The stego file\n"
+               "       -mf   Message file, if omitted stdin/stdout is used\n"
+               "       -m    The steganographic method to use.\n"
+               "             One of: ";
+  const auto methods = MethodFactory::list_methods();
+  for (unsigned i = 0; i < methods.size() - 1; i++) {
+    std::cout << methods[i] << ", ";
+  }
+  std::cout << methods[methods.size() - 1] << "\n";
+
+  std::cout << "       -k    The stego key (method parameter)\n"
+               "       -e    Use Hamming code for the message\n"
+               "       -l    Message length limit\n"
+               "\n"
+               "Stego key format: key=value\n"
+               "Method stego keys:\n";
+  for (const auto& method : methods) {
+    std::cout << setw(10) << left << method << ": ";
+    auto params = MethodFactory::get_method_params(method);
+    if (params.empty())
+      continue;
+
+    std::cout << setw(10) << left << params[0].name << " - "
+              << params[0].description << '\n';
+    for (unsigned i = 1; i < params.size(); i++) {
+      std::cout << "            " << setw(10) << left << params[i].name << " - "
+                << params[i].description << '\n';
+    }
+  }
+  std::cout << "\n"
+               "Copyright © 2023 Matej Matuska\n"
+               "License GPLv3+: GNU GPL version 3 or later "
+               "<https://gnu.org/licenses/gpl.html>.\n"
+               "This is free software: you are free to change and redistribute "
+               "it. There is NO WARRANTY, to the extent permitted by law.\n";
 }
 
 bool embed_command(const struct args& args)
@@ -224,7 +258,6 @@ int main(int argc, char* argv[])
   } else if (args.command == "extract") {
     return !extract_command(args);
   }
-
   // UNREACHABLE
   return EXIT_SUCCESS;
 }

@@ -24,7 +24,7 @@ LSBMethod::LSBMethod(const Params& params)
   if (bits_per_frame == 0)
     throw std::invalid_argument("number of LSBs must be > 0");
 
-  bit_depth = params.get_i("bit_depth");
+  bit_depth = params.get_or("bit_depth", 16);
   if (bit_depth == -1)
     throw std::invalid_argument("lsb method works only with integer samples");
 }

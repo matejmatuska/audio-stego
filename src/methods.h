@@ -23,17 +23,16 @@
 #include <string>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 #include "embedder.h"
 #include "extractor.h"
 
-using integer_type = int;
-
 using embedder_variant = std::variant<std::unique_ptr<Embedder<double>>,
-                                      std::unique_ptr<Embedder<integer_type>>>;
+                                      std::unique_ptr<Embedder<int>>>;
 
 using extractor_variant = std::variant<std::unique_ptr<Extractor<double>>,
-                                       std::unique_ptr<Extractor<integer_type>>>;
+                                       std::unique_ptr<Extractor<int>>>;
 
 class Params {
  private:
@@ -84,6 +83,7 @@ class Params {
   ACCESSOR_DEF(double, d, std::stod);
 };
 
+// TODO document
 class Method {
  public:
   virtual embedder_variant make_embedder(InBitStream& input) const = 0;

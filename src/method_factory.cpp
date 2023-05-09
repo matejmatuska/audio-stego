@@ -27,12 +27,37 @@ std::unique_ptr<Method> create_unique(const Params& params)
   return std::make_unique<T>(params);
 }
 
+struct MethodFactory::Register {
+  MethodFactory::method_creator creator;
+  std::vector<Param> params;
+};
+
 MethodFactory::creator_map MethodFactory::method_map = {
-    {"lsb", create_unique<LSBMethod>},
-    {"phase", create_unique<PhaseMethod>},
-    {"echo", create_unique<EchoHidingMethod>},
-    {"tone", create_unique<ToneInsertionMethod>},
-    {"echo-hc", create_unique<EchoHidingHCMethod>}};
+    {"lsb",
+     Register{create_unique<LSBMethod>,
+              {Param("lsbs", "number of lsbs in samples to substitute")}}},
+    {"phase", Register{create_unique<PhaseMethod>,
+                       {Param("framesize", "the length of one audio frame")}}},
+    {"echo", Register{create_unique<EchoHidingMethod>,
+                      {
+                          Param("delay0", "echo delay for bit 0"),
+                          Param("delay1", "echo delay for bit 1"),
+                          Param("amp", "echo amplitude (0-1)"),
+                          Param("framesize", "the length of one audio frame"),
+                      }}},
+    {"echo-hc",
+     Register{create_unique<EchoHidingHCMethod>,
+              {
+                  Param("interval", "space between echo positions"),
+                  Param("amp", "echo amplitude (0-1)"),
+                  Param("framesize", "the length of one audio frame"),
+              }}},
+    {"tone", Register{create_unique<ToneInsertionMethod>,
+                      {
+                          Param("freq0", "the frequency for bit 0"),
+                          Param("freq1", "the frequency for bit 1"),
+                          Param("framesize", "the length of one audio frame"),
+                      }}}};
 
 std::unique_ptr<Method> MethodFactory::create(const std::string& method_name,
                                               const Params& params)
@@ -40,7 +65,7 @@ std::unique_ptr<Method> MethodFactory::create(const std::string& method_name,
   if (method_map.find(method_name) == method_map.end()) {
     throw std::invalid_argument("Unknown method: " + method_name);
   }
-  return method_map[method_name](params);
+  return method_map[method_name].creator(params);
 }
 
 std::vector<std::string> MethodFactory::list_methods()
@@ -50,4 +75,10 @@ std::vector<std::string> MethodFactory::list_methods()
     keys.push_back(it->first);
   }
   return keys;
+}
+
+const std::vector<MethodFactory::Param>& MethodFactory::get_method_params(
+    const std::string& method)
+{
+  return method_map[method].params;
 }

@@ -45,12 +45,16 @@ struct args parse_args(int argc, char* argv[])
     throw std::invalid_argument("No command specified");
   }
 
+  struct args args;
+
   std::string cmd{argv[1]};
-  if (cmd == "--help" && argc != 2) {
-    throw std::invalid_argument("--help doesn't take arguments");
+  if (cmd == "--help") {
+    if (argc != 2)
+      throw std::invalid_argument("--help doesn't take arguments");
+    args.command = cmd;
+    return args;
   }
 
-  struct args args;
   if (cmd == "embed") {
     string_set required{"-sf", "-cf", "-m"};
     string_set optional{"-mf", "-k", "-l", "-e"};
