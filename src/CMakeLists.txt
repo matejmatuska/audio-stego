@@ -25,4 +25,13 @@ add_executable(${PROJECT_NAME}
     coverfile.cpp
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE -lsndfile -lfftw3)
+find_library(FFTW3 fftw3 REQUIRED)
+find_library(SNDFILE sndfile REQUIRED)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${SNDFILE} ${FFTW3})
+
+
+find_path(FFTW3_HEADER NAMES "fftw3.h")
+find_path(SNDFILE_HEADER NAMES "sndfile.hh")
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${SNDFILE_HEADER} ${FFTW3_HEADER})
