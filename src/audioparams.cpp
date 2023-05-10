@@ -1,4 +1,5 @@
 #include "audioparams.h"
+#include "sndfile.h"
 
 static int get_bit_depth(int format)
 {
@@ -30,6 +31,10 @@ static int get_bit_depth(int format)
     case SF_FORMAT_PCM_32:
     case SF_FORMAT_ALAC_32:
       return 32;
+    case SF_FORMAT_MPEG_LAYER_I:
+    case SF_FORMAT_MPEG_LAYER_II:
+    case SF_FORMAT_MPEG_LAYER_III:
+      return 16;
   }
   return -1;
 }
