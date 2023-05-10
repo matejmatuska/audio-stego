@@ -29,7 +29,7 @@
  *
  * Any required buffers and required algorithms, such as FFT, should be
  * contained in instances of this class.
- * @tparam The data type of samples
+ * @tparam T The data type of samples
  */
 template <typename T>
 class Extractor {

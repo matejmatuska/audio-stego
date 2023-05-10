@@ -15,7 +15,8 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 /**
- * @file Classes implementing the echo hiding high capacity method.
+ * @file echo_hiding_hc.h
+ * @brief Declarations for the echo hiding high capacity method.
  */
 #ifndef ECHO_HIDING_HC_H
 #define ECHO_HIDING_HC_H

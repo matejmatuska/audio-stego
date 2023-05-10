@@ -15,7 +15,8 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 /**
- * @file Classes implementing the phase coding method.
+ * @file phase_coding.h
+ * @brief Declarations for the phase coding method.
  */
 #ifndef PHASE_EMBEDDER_H
 #define PHASE_EMBEDDER_H

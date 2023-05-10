@@ -15,18 +15,19 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 /**
- * @file Classes implementing the tone insertion method.
+ * @file tone_insertion.h
+ * @brief Declarations for the tone insertion method.
  */
 #ifndef TONE_INSERTION_H
 #define TONE_INSERTION_H
 
 #include <cstddef>
 
-#include "methods.h"
 #include "embedder.h"
 #include "extractor.h"
 #include "fft.h"
 #include "ifft.h"
+#include "methods.h"
 
 class ToneInsertionMethod : public Method {
  public:

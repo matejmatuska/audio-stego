@@ -26,12 +26,29 @@
 #include "dsp_utils.h"
 #include "extractor.h"
 
+/**
+ * @brief Stego file.
+ * A file with an embedded message.
+ */
 class StegoFile {
  public:
+  /**
+   * @brief Constructor.
+   *
+   * Construct a new instance with the file given by filename.
+   */
   StegoFile(const std::string& filename);
 
+  /**
+   * @brief Return the parameters of the audio file.
+   */
   AudioParams audio_params();
 
+  /**
+   * @brief Extract the embedded data.
+   * @params extractor The Extractor to extract data with.
+   * @params output The bitstream to write the extracted data to.
+   */
   template <typename T>
   void extract(Extractor<T>& extractor, OutBitStream& output)
   {

@@ -22,8 +22,17 @@
 #include <string>
 #include <vector>
 
+/**
+ * @brief A vector of bits.
+ * The vector can dynamically grow. Bits can only be appended. For insertion it
+ * is more effective to create a new vector and append the bits from existing
+ * one.
+ */
 class BitVector {
  public:
+   /**
+    * @brief The reference type for bit.
+    */
   class reference {
     reference(BitVector& bv, std::size_t index);
 

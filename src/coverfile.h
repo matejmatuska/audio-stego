@@ -28,24 +28,25 @@
 #include "ioexception.h"
 
 /**
- * @brief Class representing the cover file.
+ * @brief Cover file for steganography.
+ * A file used for embedding a message.
  */
 class CoverFile {
  public:
   /**
    * @brief Constructor.
    *
-   * Constructs a new instance with the file given by filename.
+   * Construct a new instance with the file given by filename.
    */
   CoverFile(const std::string& filename);
 
   /**
-   * @brief Returns the parameters of the audio file.
+   * @brief Return the parameters of the audio file.
    */
   AudioParams audio_params();
 
   /**
-   * @brief Embeds data into the file with the given embedder
+   * @brief Embed data into the file with the given embedder
    * @params stegofile The filename of the resulting stego file.
    * @params embedder The embedder to embed data with.
    */

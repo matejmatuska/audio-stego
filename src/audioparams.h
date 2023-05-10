@@ -19,6 +19,9 @@
 
 #include <sndfile.hh>
 
+/**
+ * @brief Holds audio file parameters.
+ */
 struct AudioParams {
   AudioParams(SndfileHandle& file);
 
@@ -27,6 +30,5 @@ struct AudioParams {
   unsigned channels;
   int bit_depth;
 };
-
 
 #endif  //  AUDIOPARAMS_H

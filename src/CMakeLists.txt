@@ -31,11 +31,19 @@ find_library(VORBIS vorbis REQUIRED)
 find_library(VORBISENC vorbisenc REQUIRED)
 find_library(OPUS opus REQUIRED)
 find_library(FLAC FLAC REQUIRED)
+find_library(LAME NAMES mp3lame lame REQUIRED)
+find_library(MPG123 mpg123 REQUIRED)
 find_library(SNDFILE sndfile REQUIRED)
+
+find_path(SNDFILE_HEADER sndfile.hh)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${SNDFILE_HEADER})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${FFTW3}
     ${SNDFILE}
+    ${LAME}
+    ${MPG123}
     ${OPUS}
     ${FLAC}
     ${VORBISENC}

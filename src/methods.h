@@ -34,24 +34,47 @@ using embedder_variant = std::variant<std::unique_ptr<Embedder<double>>,
 using extractor_variant = std::variant<std::unique_ptr<Extractor<double>>,
                                        std::unique_ptr<Extractor<int>>>;
 
+/**
+ * @brief Method parameters with supplied values.
+ *
+ * The parameters and values are stored
+ * as key value paires
+ */
 class Params {
  private:
   std::unordered_map<std::string, std::string> map;
 
  public:
+  /**
+   * @brief Constructor
+   * Create an empty instance
+   */
   Params() : map(){};
+  /**
+   * @brief Constructor
+   * Create an instance from map with paramter-value pairs.
+   */
   Params(std::unordered_map<std::string, std::string> map) : map(map){};
 
+  /**
+   * @brief Insert a parameter with value.
+   */
   void insert(std::string name, std::string value) { map[name] = value; }
 
+  /**
+   * @brief Prints the contents to stderr.
+   */
   void dump() const
   {
     for (const auto& [key, value] : map) {
-      std::cout << "param: \"" << key;
-      std::cout << "\", value: \"" << value << "\"\n";
+      std::cerr << "param: \"" << key;
+      std::cerr << "\", value: \"" << value << "\"\n";
     }
   }
 
+/**
+ * @brief Define an accessor with fallback value.
+ */
 #define ACCESSOR_OR_DEF(type, conv_func)                              \
   type get_or(const std::string& name, const type& def) const         \
   {                                                                   \
@@ -67,6 +90,9 @@ class Params {
   ACCESSOR_OR_DEF(unsigned long long, std::stoull);
   ACCESSOR_OR_DEF(double, std::stod);
 
+/**
+ * @brief Define an accessor.
+ */
 #define ACCESSOR_DEF(type, fname, conv_func)                     \
   type get_##fname(const std::string& name) const                \
   {                                                              \
@@ -83,11 +109,22 @@ class Params {
   ACCESSOR_DEF(double, d, std::stod);
 };
 
-// TODO document
+/**
+ * @brief A steganographic method.
+ */
 class Method {
  public:
+  /**
+   * @brief Create an embedder for this method.
+   */
   virtual embedder_variant make_embedder(InBitStream& input) const = 0;
+  /**
+   * @brief Create an extractor for this method.
+   */
   virtual extractor_variant make_extractor() const = 0;
+  /**
+   * @brief Get the capacity of this method for the given number of samples.
+   */
   virtual ssize_t capacity(std::size_t samples) const = 0;
 };
 
