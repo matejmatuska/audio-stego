@@ -26,12 +26,19 @@ add_executable(${PROJECT_NAME}
 )
 
 find_library(FFTW3 fftw3 REQUIRED)
+find_library(OGG ogg REQUIRED)
+find_library(VORBIS vorbis REQUIRED)
+find_library(VORBISENC vorbisenc REQUIRED)
+find_library(OPUS opus REQUIRED)
+find_library(FLAC FLAC REQUIRED)
 find_library(SNDFILE sndfile REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SNDFILE} ${FFTW3})
-
-
-find_path(FFTW3_HEADER NAMES "fftw3.h")
-find_path(SNDFILE_HEADER NAMES "sndfile.hh")
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${SNDFILE_HEADER} ${FFTW3_HEADER})
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${FFTW3}
+    ${SNDFILE}
+    ${OPUS}
+    ${FLAC}
+    ${VORBISENC}
+    ${VORBIS}
+    ${OGG}
+)
