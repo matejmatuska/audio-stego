@@ -24,12 +24,12 @@
 
 #define DEF_FRAME_SIZE 4096
 
-// TODO document typename T
 /**
  * @brief The base class for extracting algorithms.
  *
  * Any required buffers and required algorithms, such as FFT, should be
  * contained in instances of this class.
+ * @tparam The data type of samples
  */
 template <typename T>
 class Extractor {

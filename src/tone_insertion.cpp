@@ -123,7 +123,6 @@ bool ToneInsertionExtractor::extract(OutBitStream& data)
 
   fft.exec();
 
-  // TODO we might need to norm by N - see Parsevals theorem
   double p0 = std::norm(dft[bin_f0]);
   double p1 = std::norm(dft[bin_f1]);
 

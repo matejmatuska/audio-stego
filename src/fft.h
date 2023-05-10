@@ -27,7 +27,6 @@
  */
 class FFT {
  public:
-  // TODO remove N
   /**
    * @brief Constructor.
    * @param N The length of the input frame / number of frequency bins.

@@ -22,7 +22,6 @@ HammingInBitStream::HammingInBitStream(std::shared_ptr<InBitStream> in) : in(in)
 
 inline int HammingInBitStream::next_bit()
 {
-  // TODO without bitset
   if (eof())
     return EOF;
 

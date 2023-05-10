@@ -24,8 +24,8 @@
 #include "util.h"
 
 #define USE_SMOOTHING 1
-#define SMOOTHING_PCT 0.95 // TODO
-                           //
+#define SMOOTHING_PCT 0.95
+
 EchoHidingMethod::EchoHidingMethod(const Params& params)
 {
   frame_size = params.get_or("framesize", 4096);
