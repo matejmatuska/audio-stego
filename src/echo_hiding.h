@@ -15,7 +15,8 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 /**
- * @file Classes implementing the echo hiding method.
+ * @file echo_hiding.h
+ * @brief Declarations for the echo hiding method.
  */
 #ifndef ECHO_HIDING_H
 #define ECHO_HIDING_H

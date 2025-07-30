@@ -21,14 +21,30 @@
 #include "phase_coding.h"
 #include "tone_insertion.h"
 
+/**
+ * @brief Wrapper around std::make_unique.
+ * Can be used to create a function pointer to std::make_unique for Method objects.
+ * @param params The parameters for the method.
+ * @return A pointer to the created Method.
+ */
 template <typename T>
 std::unique_ptr<Method> create_unique(const Params& params)
 {
   return std::make_unique<T>(params);
 }
 
+/**
+ * @brief Proxy for objects registered to the factory.
+ */
 struct MethodFactory::Register {
+  /**
+   * @brief Pointer to creation used to create this Method.
+   * @see create_unique
+   */
   MethodFactory::method_creator creator;
+  /**
+   * @brief A list of parameters accepted by the Method.
+   */
   std::vector<Param> params;
 };
 

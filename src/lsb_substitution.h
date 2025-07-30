@@ -15,7 +15,8 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 /**
- * @file Classes implementing the LSB substitution method.
+ * @file lsb_substitution.h
+ * @brief Declarations for the LSB substitution method.
  */
 #ifndef LSB_EMBEDDER_H
 #define LSB_EMBEDDER_H

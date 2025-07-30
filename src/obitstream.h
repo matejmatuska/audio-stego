@@ -73,6 +73,9 @@ class OutBitStream {
   }
 };
 
+/**
+ * @brief OutBitStream which writes data to a BitVector.
+ */
 class VectorOutBitStream : public OutBitStream {
  public:
   VectorOutBitStream();
@@ -90,6 +93,9 @@ class VectorOutBitStream : public OutBitStream {
   BitVector sink;
 };
 
+/**
+ * @brief An OutBitStream decorator which EOFs after the given number of bits were written.
+ */
 class LimitedOutBitStream : public OutBitStream {
  public:
   LimitedOutBitStream(std::shared_ptr<OutBitStream> in, std::size_t limit);

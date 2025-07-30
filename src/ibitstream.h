@@ -74,6 +74,9 @@ class InBitStream {
   }
 };
 
+/**
+ * @brief InBitStream with BitVector as the source.
+ */
 class VectorInBitStream : public InBitStream {
  public:
   VectorInBitStream(const BitVector& source);
@@ -95,6 +98,9 @@ class VectorInBitStream : public InBitStream {
   std::size_t index = 0;
 };
 
+/**
+ * @brief An InBitStream decorator which EOFs after the given number of bits were read.
+ */
 class LimitedInBitStream : public InBitStream {
  public:
   LimitedInBitStream(std::shared_ptr<InBitStream> in, std::size_t limit);

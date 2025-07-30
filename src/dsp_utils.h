@@ -15,7 +15,8 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 /**
- * @file Utilities for digital signal processing
+ * @file dsp_utils.h
+ * @brief Utilities for digital signal processing
  */
 #ifndef PROCESSING_H
 #define PROCESSING_H

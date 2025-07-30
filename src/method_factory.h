@@ -42,6 +42,10 @@ class MethodFactory {
   static std::unique_ptr<Method> create(const std::string& method_name,
                                         const Params& params);
 
+  /**
+   * @brief Class representing a parameter for Method.
+   * This name and description can be presented to the user.
+   */
   struct Param {
     Param(const std::string name, const std::string description)
         : name(name), description(description)
@@ -51,6 +55,9 @@ class MethodFactory {
     const std::string description;
   };
 
+  /**
+   * @brief Get a list of parameters accepted by given method.
+   */
   static const std::vector<Param>& get_method_params(const std::string& method);
 
  private:
