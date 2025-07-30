@@ -31,7 +31,7 @@ $ cmake -S . -B build -D CMAKE_BUILD_TYPE=Debug
 ```
 To build with bundled libraries add the following option:
 ```
--DCMAKE_PREFIX_PATH=/home/matej/projects/bachelors-thesis/src/libs
+-DCMAKE_PREFIX_PATH=$(realpath ./src/libs)
 ```
 
 After configuration build the project using:
